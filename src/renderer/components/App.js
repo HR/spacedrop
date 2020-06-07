@@ -2,7 +2,7 @@ import React from 'react'
 import { useNotifications } from '../lib/notifications'
 import { clone } from '../lib/util'
 import { ipcRenderer, remote } from 'electron'
-import { Container, Row, Col, Button, ProgressBar } from 'react-bootstrap'
+import { Container, Row, Col, Button, ProgressBar, Tabs, Tab } from 'react-bootstrap'
 import '../../../static/scss/index.scss'
 
 const { dialog } = remote
@@ -107,17 +107,17 @@ export default class App extends React.Component {
     return (
       <div className='App'>
         <Container>
-          <div className='header shadow'>
+          <div className='header'>
             <Row className='title'>
               <Col>Spacedrop</Col>
             </Row>
             <Row className='actions'>
               <Col>
                 <Button variant='dark'>
-                  <i className='ion-ios-arrow-round-up' />
+                  <i className='ion-ios-send' />
                 </Button>
                 <Button variant='dark'>
-                  <i className='ion-ios-arrow-round-down' />
+                  <i className='ion-ios-add' />
                 </Button>
               </Col>
               <Col>
@@ -131,30 +131,62 @@ export default class App extends React.Component {
             </Row>
           </div>
           <div className='transfers'>
-            <Row className='transfer'>
-              {/* <Col className='thumb'>
+            <Tabs defaultActiveKey='home' variant="pills">
+              <Tab eventKey='home' title='Alice'>
+                <Row className='transfer'>
+                  {/* <Col className='thumb'>
                 <i className='ion-ios-document' />
               </Col> */}
-              <Col className='info'>
-                <Row className='name'>
-                  <Col>Slow_fi.mp3</Col>
-                  <Col className='text-right actions'>
-                    <i className='ion-ios-pause' />
-                    <i className='ion-ios-close-circle' />
-                  </Col>
-                </Row>
-                <Row className='status'>
-                  {/* <Col>Received 1 MB of 420 MB (1%) - 2 mins left</Col>
+                  <Col className='info'>
+                    <Row className='name'>
+                      <Col>Slow_fi.mp3</Col>
+                      <Col className='text-right actions'>
+                        <i className='ion-ios-pause' />
+                        <i className='ion-ios-close-circle' />
+                      </Col>
+                    </Row>
+                    <Row className='status'>
+                      {/* <Col>Received 1 MB of 420 MB (1%) - 2 mins left</Col>
                   <Col className='text-right'>↓ 1 MB/s</Col> */}
-                  <Col>↓ 1 MB/s - Received 1 MB of 420 MB (1%), 2 mins left</Col>
-                </Row>
-                <Row className='progressbar'>
-                  <Col>
-                    <ProgressBar animated now={45} />
+                      <Col>
+                        ↓ 1 MB/s - Received 1 MB of 420 MB (1%), 2 mins left
+                      </Col>
+                    </Row>
+                    <Row className='progressbar'>
+                      <Col>
+                        <ProgressBar animated now={45} />
+                      </Col>
+                    </Row>
                   </Col>
                 </Row>
-              </Col>
-            </Row>
+                <Row className='transfer'>
+                  <Col className='info'>
+                    <Row className='name'>
+                      <Col>Slow_fi.mp3</Col>
+                      <Col className='text-right actions'>
+                        <i className='ion-ios-pause' />
+                        <i className='ion-ios-close-circle' />
+                      </Col>
+                    </Row>
+                    <Row className='status'>
+                      {/* <Col>Received 1 MB of 420 MB (1%) - 2 mins left</Col>
+                  <Col className='text-right'>↓ 1 MB/s</Col> */}
+                      <Col>
+                        ↓ 1 MB/s - Received 1 MB of 420 MB (1%), 2 mins left
+                      </Col>
+                    </Row>
+                    <Row className='progressbar'>
+                      <Col>
+                        <ProgressBar animated now={45} />
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </Tab>
+              <Tab eventKey='contact' title='Bob'>
+                Hi
+              </Tab>
+            </Tabs>
           </div>
         </Container>
       </div>

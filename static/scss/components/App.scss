@@ -7,13 +7,18 @@
     padding: 0;
   }
 
+  nav {
+    margin: $side-margin;
+  }
+
+
+  .nav-link.active {
+    background-color: themed('primaryColor');
+    // font-weight: bold;
+  }
+
   .header {
     padding: 10px $side-margin $side-margin $side-margin;
-    background-image: linear-gradient(
-      to bottom,
-      themed('backgroundColor') 0,
-      themed('mutedForegroundColor') 100%
-    );
 
     .title {
       text-align: center;
@@ -49,7 +54,10 @@
 
   .transfers {
     .transfer {
-      padding: $side-margin*1.4 $side-margin;
+      margin: $side-margin;
+      padding-top: $side-margin;
+      padding-bottom: $side-margin;
+      border-radius: 0.25rem;
       background: themed('primaryColor');
 
       .progress {
