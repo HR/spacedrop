@@ -17,7 +17,7 @@
     // font-weight: bold;
   }
 
-  .header {
+  .toolbar {
     padding: 10px $side-margin $side-margin $side-margin;
 
     .title {
@@ -52,8 +52,8 @@
     }
   }
 
-  .transfers {
-    .transfer {
+  .drops {
+    .drop {
       margin: $side-margin;
       padding-top: $side-margin;
       padding-bottom: $side-margin;

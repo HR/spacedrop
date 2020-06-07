@@ -4,5 +4,8 @@
  */
 
 module.exports = {
-  
+  DROP_TYPE: {
+    DOWNLOAD: '↓',
+    UPLOAD: '↑'
+  }
 }

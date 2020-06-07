@@ -1,8 +1,10 @@
 import React from 'react'
+import { ipcRenderer, remote } from 'electron'
+import { Container } from 'react-bootstrap'
 import { useNotifications } from '../lib/notifications'
 import { clone } from '../lib/util'
-import { ipcRenderer, remote } from 'electron'
-import { Container, Row, Col, Button, ProgressBar, Tabs, Tab } from 'react-bootstrap'
+import Toolbar from './Toolbar'
+import Drops from './Drops'
 import '../../../static/scss/index.scss'
 
 const { dialog } = remote
@@ -21,7 +23,47 @@ export default class App extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      transfers: {},
+      drops: [
+        {
+          id: 'j9348jr3948rjlknwkendkkmkewdmkd',
+          name: 'Alice',
+          drops: [
+            {
+              name: 'lo_fi.mp3',
+              type: '↓',
+              path: '/tmp/lo_fi.mp3',
+              progress: 20040192,
+              total: 440401920,
+              rate: 2097152,
+              done: false
+            }
+          ]
+        },
+        {
+          id: 'jl348jr3938rjlknwkendkkmkewdmkd',
+          name: 'Bob',
+          drops: [
+            {
+              name: 'matrix.exe',
+              type: '↑',
+              path: '/tmp/lo_fi.mp3',
+              progress: 89040192,
+              total: 540401920,
+              rate: 1097152,
+              done: false
+            },
+            {
+              name: 'bro.pdf',
+              type: '↓',
+              path: '/tmp/lo_fi.mp3',
+              progress: 89040192,
+              total: 540401920,
+              rate: 3097152,
+              done: true
+            }
+          ]
+        }
+      ],
       ...clone(initModalsState)
     }
 
@@ -107,87 +149,8 @@ export default class App extends React.Component {
     return (
       <div className='App'>
         <Container>
-          <div className='header'>
-            <Row className='title'>
-              <Col>Spacedrop</Col>
-            </Row>
-            <Row className='actions'>
-              <Col>
-                <Button variant='dark'>
-                  <i className='ion-ios-send' />
-                </Button>
-                <Button variant='dark'>
-                  <i className='ion-ios-add' />
-                </Button>
-              </Col>
-              <Col>
-                <Button variant='dark'>
-                  <i className='ion-ios-pause' />
-                </Button>
-                <Button variant='dark'>
-                  <i className='ion-ios-close-circle' />
-                </Button>
-              </Col>
-            </Row>
-          </div>
-          <div className='transfers'>
-            <Tabs defaultActiveKey='home' variant="pills">
-              <Tab eventKey='home' title='Alice'>
-                <Row className='transfer'>
-                  {/* <Col className='thumb'>
-                <i className='ion-ios-document' />
-              </Col> */}
-                  <Col className='info'>
-                    <Row className='name'>
-                      <Col>Slow_fi.mp3</Col>
-                      <Col className='text-right actions'>
-                        <i className='ion-ios-pause' />
-                        <i className='ion-ios-close-circle' />
-                      </Col>
-                    </Row>
-                    <Row className='status'>
-                      {/* <Col>Received 1 MB of 420 MB (1%) - 2 mins left</Col>
-                  <Col className='text-right'>↓ 1 MB/s</Col> */}
-                      <Col>
-                        ↓ 1 MB/s - Received 1 MB of 420 MB (1%), 2 mins left
-                      </Col>
-                    </Row>
-                    <Row className='progressbar'>
-                      <Col>
-                        <ProgressBar animated now={45} />
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-                <Row className='transfer'>
-                  <Col className='info'>
-                    <Row className='name'>
-                      <Col>Slow_fi.mp3</Col>
-                      <Col className='text-right actions'>
-                        <i className='ion-ios-pause' />
-                        <i className='ion-ios-close-circle' />
-                      </Col>
-                    </Row>
-                    <Row className='status'>
-                      {/* <Col>Received 1 MB of 420 MB (1%) - 2 mins left</Col>
-                  <Col className='text-right'>↓ 1 MB/s</Col> */}
-                      <Col>
-                        ↓ 1 MB/s - Received 1 MB of 420 MB (1%), 2 mins left
-                      </Col>
-                    </Row>
-                    <Row className='progressbar'>
-                      <Col>
-                        <ProgressBar animated now={45} />
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Tab>
-              <Tab eventKey='contact' title='Bob'>
-                Hi
-              </Tab>
-            </Tabs>
-          </div>
+          <Toolbar />
+          <Drops drops={this.state.drops} />
         </Container>
       </div>
     )
