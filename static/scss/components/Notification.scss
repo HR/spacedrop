@@ -1,0 +1,45 @@
+@import '../themes';
+
+@include themify() {
+  .notification-container {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+  }
+
+  .notification {
+    margin: 0 auto;
+    margin-bottom: 15px;
+    width: 300px;
+    background: themed('backgroundColor');
+    backdrop-filter: blur(20px);
+    text-align: left;
+    font-size: 14px;
+    overflow: hidden;
+    border-radius: 0.4rem;
+    padding: 1rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    justify-items: center;
+    @include shadow;
+  }
+
+  .notification > .dismiss:hover {
+    opacity: 0.8;
+  }
+
+  .notification > .dismiss {
+    cursor: pointer;
+  }
+
+  .error.notification {
+    background: themed('dangerColor');
+    color: themed('dangerForegroundColor');
+
+    > .dismiss {
+      color: themed('dangerForegroundColor');
+    }
+  }
+}

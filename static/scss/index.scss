@@ -1,0 +1,42 @@
+@import '~bootstrap/scss/bootstrap';
+
+@import 'components/*';
+@import 'ionicons';
+@import 'themes';
+
+@include themify() {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: themed('windowBackgroundColor');
+
+  .danger {
+    background: themed('dangerColor') !important;
+    color: themed('dangerForegroundColor') !important;
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
+
+  * {
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    color: themed('primaryForegroundColor');
+  }
+
+  *:focus {
+    outline: none;
+  }
+
+  a {
+    cursor: pointer;
+  }
+}

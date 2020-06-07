@@ -1,0 +1,30 @@
+@import 'default';
+
+@mixin themify() {
+  .theme-light {
+    $internalTheme: map-get($theme, 'light') !global;
+    @content;
+    $internalTheme: null !global;
+  }
+
+  .theme-dark {
+    $internalTheme: map-get($theme, 'dark') !global;
+    @content;
+    $internalTheme: null !global;
+  }
+}
+
+@mixin shadow {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+@function themed($key: 'primaryColor') {
+  @return map-get($internalTheme, $key);
+}
+
+@function to-string($value) {
+  @return inspect($value);
+}
+
+$horizontal-spacing: 0.8rem;

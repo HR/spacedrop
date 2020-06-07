@@ -1,0 +1,73 @@
+@import '../themes';
+
+@include themify() {
+  $side-margin: 12px;
+
+  .container {
+    padding: 0;
+  }
+
+  .header {
+    padding: 10px $side-margin $side-margin $side-margin;
+    background-image: linear-gradient(
+      to bottom,
+      themed('backgroundColor') 0,
+      themed('mutedForegroundColor') 100%
+    );
+
+    .title {
+      text-align: center;
+      margin-bottom: 14px;
+      font-size: 13px;
+      vertical-align: text-top;
+    }
+
+    .actions {
+      padding: 0px;
+    }
+
+    .actions i {
+      font-size: 16px;
+    }
+
+    .actions > .col:last-child {
+      text-align: right;
+    }
+
+    button {
+      margin: 0px 3px;
+    }
+
+    button:first-of-type {
+      margin-left: 0;
+    }
+
+    button:last-of-type {
+      margin-right: 0;
+    }
+  }
+
+  .transfers {
+    .transfer {
+      padding: $side-margin*1.4 $side-margin;
+      background: themed('primaryColor');
+
+      .progress {
+        background: themed('backgroundColor');
+      }
+
+      .name {
+        font-weight: bold;
+        font-size: 18px;
+      }
+
+      .status {
+        margin-top: 4px;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 300;
+        color: themed('highlightBorderColor');
+      }
+    }
+  }
+}
