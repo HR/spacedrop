@@ -119,7 +119,7 @@ app.on('activate', windows.main.activate)
   // When the file offer is answered by another user
   server.on('file-answer', chatAcceptHandler)
   // When the user for a message cannot be found
-  server.on('unknown-receiver', receiverNotFoundHandler)
+  server.on('not-found', receiverNotFoundHandler)
 
   /**
    * Peers events
@@ -161,9 +161,12 @@ app.on('activate', windows.main.activate)
 
   try {
     // Connect to the signal server
-    await server.connect()
+    const authRequest = crypto.generateAuthRequest()
+    console.log('Connecting with', authRequest)
+    await server.connect(identity.publicKey, authRequest)
     console.log('Connected to server')
   } catch (error) {
+    console.error(error)
     // Notify user of it
     windows.main.send(
       'notify',

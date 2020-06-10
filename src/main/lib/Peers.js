@@ -59,7 +59,7 @@ module.exports = class Peers extends EventEmitter {
     this._signal.on('signal-request', this._onSignalRequest)
     this._signal.on('signal-accept', this._onSignalAccept)
     this._signal.on('signal', this._onSignal)
-    this._signal.on('unknown-receiver', this._onSignalReceiverOffline)
+    this._signal.on('not-found', this._onSignalReceiverOffline)
 
     Peers.instance = this
   }

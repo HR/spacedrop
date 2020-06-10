@@ -6,6 +6,7 @@
 
 const WebSocket = require('ws'),
   EventEmitter = require('events'),
+  { encode } = require('querystring'),
   { WS_URI } = require('../../config')
 
 module.exports = class Server extends EventEmitter {
@@ -29,17 +30,19 @@ module.exports = class Server extends EventEmitter {
     Server.instance = this
   }
 
-  // Connects to signal server
-  connect () {
-    // Build ws uri with authentication querystring data
-    return new Promise((resolve, reject) => {
-      this._ws = new WebSocket(WS_URI)
-      // Add event listeners
-      this._ws.on('message', this._emit)
-      this._ws.on('open', resolve)
-      this._ws.on('error', reject)
-    })
-  }
+// Connects to signal server
+connect (userId, authRequest) {
+  this._id = userId
+  // Build ws uri with authentication querystring data
+  const wsAuthURI = WS_URI + '?' + encode(authRequest)
+  return new Promise((resolve, reject) => {
+    this._ws = new WebSocket(wsAuthURI)
+    // Add event listeners
+    this._ws.on('message', this._emit)
+    this._ws.on('open', resolve)
+    this._ws.on('error', reject)
+  })
+}
 
   // Sends signal to a peer (via server)
   send (type, extras = {}, cb) {

@@ -18,12 +18,12 @@ export default function Toolbar (props) {
           </Button>
         </Col>
         <Col>
-          <Button variant='dark'>
+          {/* <Button variant='dark'>
             <i className='ion-ios-pause' onClick={props.onPauseClick} />
           </Button>
           <Button variant='dark'>
             <i className='ion-ios-close-circle' onClick={props.onCancelClick} />
-          </Button>
+          </Button> */}
           <Button variant='dark'>
             <i className='ion-ios-contact' onClick={props.onCopyIdentityClick} />
           </Button>

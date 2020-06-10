@@ -9,7 +9,7 @@ const crypto = require('crypto'),
   hkdf = require('futoin-hkdf'),
   // TODO: Replace with crypto.diffieHellman once nodejs#26626 lands on v12 LTS
   { box, sign } = require('tweetnacl'),
-  { chunk, hexToUint8 } = require('./util'),
+  { chunk, hexToUint8, strToUint8, Uint8ToHex } = require('./util'),
   CIPHER = 'aes-256-cbc',
   RATCHET_KEYS_LEN = 64,
   RATCHET_KEYS_HASH = 'SHA-256',
@@ -22,18 +22,14 @@ const crypto = require('crypto'),
 module.exports = class Crypto {
   constructor () {
     this._sessionKeys = {}
-    this._identity
+    this._identity = {}
     // Bindings
   }
 
-  // Signs a message with own PGP key
-  async sign (message) {}
-
-  // Verifies a message with user's PGP key
-  async verify (id, message, signature) {}
-
-  setIdentity(identity) {
-    this._identity = identity
+  setIdentity (identity) {
+    const { publicKey, secretKey } = identity
+    this._identity.secretKey = new Uint8Array(Object.values(secretKey))
+    this._identity.publicKey = publicKey
   }
 
   // Generates a new Curve25519 key pair
@@ -42,6 +38,16 @@ module.exports = class Crypto {
     // Encode in hex for easier handling
     keyPair.publicKey = Buffer.from(keyPair.publicKey).toString('hex')
     return keyPair
+  }
+
+  // Generates a server connection authentication request
+  generateAuthRequest () {
+    const timestamp = new Date().toISOString()
+    const signature = Uint8ToHex(
+      sign.detached(strToUint8(timestamp), this._identity.secretKey)
+    )
+    const publicKey = this._identity.publicKey
+    return { publicKey, timestamp, signature }
   }
 
   // Returns a hash digest of the given data

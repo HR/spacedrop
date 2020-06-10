@@ -6,6 +6,8 @@ module.exports = {
   isEmpty,
   chunk,
   hexToUint8,
+  strToUint8,
+  Uint8ToHex,
   isString
 }
 
@@ -59,6 +61,15 @@ function chunk (buffer, chunkSize) {
 // Converts a hex string into a Uint8Array
 function hexToUint8 (hex) {
   return Uint8Array.from(Buffer.from(hex, 'hex'))
+}
+
+// Converts a string into a Uint8Array
+function strToUint8 (hex) {
+  return Uint8Array.from(Buffer.from(hex))
+}
+
+function Uint8ToHex (uint8) {
+  return Buffer.from(uint8).toString('hex')
 }
 
 // Checks if the given object is a string
