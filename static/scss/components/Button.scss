@@ -24,7 +24,7 @@
   }
 
   button:active, button:focus  {
-    filter: brightness(60%);
+    opacity: 0.6;
   }
 
   button:disabled {

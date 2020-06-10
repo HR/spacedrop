@@ -2,7 +2,8 @@
 
 @include themify() {
   .notification-container {
-    position: fixed;
+    position: absolute;
+    z-index: 4200;
     bottom: 0;
     width: 100%;
   }
@@ -16,8 +17,8 @@
     text-align: left;
     font-size: 14px;
     overflow: hidden;
-    border-radius: 0.4rem;
-    padding: 1rem;
+    border-radius: 0.25rem;
+    padding: 8px 20px;
     font-weight: bold;
     display: flex;
     align-items: center;

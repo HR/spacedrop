@@ -5,6 +5,7 @@ import { useNotifications } from '../lib/notifications'
 import { clone } from '../lib/util'
 import Toolbar from './Toolbar'
 import Wormholes from './Wormholes'
+import WormholeModal from './WormholeModal'
 import '../../../static/scss/index.scss'
 
 const { dialog } = remote
@@ -12,10 +13,7 @@ const { dialog } = remote
 let notifications = null
 // Initial modal state used to reset modals
 const initModalsState = {
-  modalMessage: {
-    text: '',
-    error: false
-  }
+  createWormhole: false
 }
 // Root component
 export default class App extends React.Component {
@@ -34,9 +32,8 @@ export default class App extends React.Component {
     this.updateState = this.updateState.bind(this)
     this.closeModals = this.closeModals.bind(this)
     this.openModal = this.openModal.bind(this)
-    this.showModalMessage = this.showModalMessage.bind(this)
-    this.showModalError = this.showModalError.bind(this)
     this.sendFileHandler = this.sendFileHandler.bind(this)
+    this.createWormhole = this.createWormhole.bind(this)
     this.copyIdentity = this.copyIdentity.bind(this)
 
     // Add event listeners
@@ -80,30 +77,16 @@ export default class App extends React.Component {
 
   // Shows the specified modal
   openModal (name) {
+    console.log('Opening modal ' + name)
     let newModalState = clone(initModalsState)
     newModalState[name] = true
     this.setState(newModalState)
   }
 
-  showModalError (text) {
-    this.showModalMessage(text, true)
-  }
-
-  showModalMessage (text, error = false) {
-    this.setState({
-      modalMessage: { text, error }
-    })
-  }
-
   // Handles sending a file
   async sendFileHandler () {
     if (!this.state.active)
-      return notifications.show(
-        'No wormhole',
-        'error',
-        true,
-        3000
-      )
+      return notifications.show('No wormhole', 'error', true, 3000)
     const title = 'Select the file to send'
     // Filter based on type selected
     const filters = [{ name: 'All Files', extensions: ['*'] }]
@@ -121,6 +104,11 @@ export default class App extends React.Component {
     ipcRenderer.send('send-file', filePaths[0])
   }
 
+  createWormhole ({ name, id }) {
+    if (!name || !id)
+      return notifications.show('Details missing', 'error', true, 3000)
+  }
+
   copyIdentity (e) {
     clipboard.writeText(this.state.identity)
     notifications.show('Copied Spacedrop ID', null, true, 3000)
@@ -131,8 +119,15 @@ export default class App extends React.Component {
   render () {
     return (
       <div className='App'>
+        <WormholeModal
+          type='Create'
+          show={this.state.createWormhole}
+          onHide={() => this.closeModals()}
+          onSubmit={this.createWormhole}
+        />
         <Container>
           <Toolbar
+            onCreateWormholeClick={() => this.openModal('createWormhole')}
             onSendClick={this.sendFileHandler}
             onCopyIdentityClick={this.copyIdentity}
           />
