@@ -27,16 +27,18 @@ module.exports = class Crypto {
   }
 
   setIdentity (identity) {
-    const { publicKey, secretKey } = identity
-    this._identity.secretKey = new Uint8Array(Object.values(secretKey))
-    this._identity.publicKey = publicKey
+    identity.secretKey = hexToUint8(identity.secretKey)
+    this._identity = identity
   }
 
   // Generates a new Curve25519 key pair
   generateIdentity () {
     let keyPair = (this._identity = sign.keyPair())
+    // Encode as hex
+    Object.keys(keyPair).map(function(key) {
+      keyPair[key] = Uint8ToHex(keyPair[key])
+    })
     // Encode in hex for easier handling
-    keyPair.publicKey = Buffer.from(keyPair.publicKey).toString('hex')
     return keyPair
   }
 

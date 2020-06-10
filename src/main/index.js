@@ -104,7 +104,7 @@ app.on('activate', windows.main.activate)
 
   identity = store.get('identity', false)
   if (!identity) {
-    identity = crypto.generateIdentityKeyPair()
+    identity = crypto.generateIdentity()
     // TODO: Store private key in keychain or encrypt store (with key in keychain)
     store.set('identity', identity)
   }
