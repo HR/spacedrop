@@ -8,7 +8,7 @@ const crypto = require('crypto'),
   fs = require('fs'),
   hkdf = require('futoin-hkdf'),
   // TODO: Replace with crypto.diffieHellman once nodejs#26626 lands on v12 LTS
-  { box } = require('tweetnacl'),
+  { box, sign } = require('tweetnacl'),
   { chunk, hexToUint8 } = require('./util'),
   CIPHER = 'aes-256-cbc',
   RATCHET_KEYS_LEN = 64,
@@ -21,17 +21,27 @@ const crypto = require('crypto'),
 
 module.exports = class Crypto {
   constructor () {
-    this._chatKeys = {}
-
+    this._sessionKeys = {}
+    this._identity
     // Bindings
   }
 
   // Signs a message with own PGP key
-  async sign (message) {
-  }
+  async sign (message) {}
 
   // Verifies a message with user's PGP key
-  async verify (id, message, signature) {
+  async verify (id, message, signature) {}
+
+  setIdentity(identity) {
+    this._identity = identity
+  }
+
+  // Generates a new Curve25519 key pair
+  generateIdentity () {
+    let keyPair = (this._identity = sign.keyPair())
+    // Encode in hex for easier handling
+    keyPair.publicKey = Buffer.from(keyPair.publicKey).toString('hex')
+    return keyPair
   }
 
   // Returns a hash digest of the given data
@@ -87,7 +97,7 @@ module.exports = class Crypto {
     // Generates a new ephemeral ratchet Curve25519 key pair for chat
     let { publicKey, secretKey } = this._generateRatchetKeyPair()
     // Initialise session object
-    this._chatKeys[id].session = {
+    this._sessionKeys[id].session = {
       currentRatchet: {
         sendingKeys: {
           publicKey,
@@ -101,7 +111,7 @@ module.exports = class Crypto {
     // Sign public key
     const timestamp = new Date().toISOString()
     const signature = await this.sign(publicKey + timestamp)
-    console.log('Initialised new session', this._chatKeys[id].session)
+    console.log('Initialised new session', this._sessionKeys[id].session)
     return { publicKey, timestamp, signature }
   }
 
@@ -113,7 +123,7 @@ module.exports = class Crypto {
     // Ignore if new encryption session if signature not valid
     if (!sigValid) return console.log('PubKey sig invalid', publicKey)
 
-    const ratchet = this._chatKeys[id].session.currentRatchet
+    const ratchet = this._sessionKeys[id].session.currentRatchet
     const { secretKey } = ratchet.sendingKeys
     ratchet.receivingKey = publicKey
     // Derive shared master secret and root key
@@ -126,7 +136,7 @@ module.exports = class Crypto {
     console.log(
       'Initialised Session',
       rootKey.toString('hex'),
-      this._chatKeys[id].session
+      this._sessionKeys[id].session
     )
   }
 
@@ -209,7 +219,7 @@ module.exports = class Crypto {
 
   // Encrypts a message
   async encrypt (id, message, isFile) {
-    let session = this._chatKeys[id].session
+    let session = this._sessionKeys[id].session
     let ratchet = session.currentRatchet
     let sendingChain = session.sending[ratchet.sendingKeys.publicKey]
     // Ratchet after every RACHET_MESSAGE_COUNT of messages
@@ -221,7 +231,7 @@ module.exports = class Crypto {
     }
     const { previousCounter } = ratchet
     const { publicKey } = ratchet.sendingKeys
-    const [encryptKey,, iv] = this._calcMessageKey(sendingChain)
+    const [encryptKey, , iv] = this._calcMessageKey(sendingChain)
     console.log(
       'Calculated encryption creds',
       encryptKey.toString('hex'),
@@ -270,7 +280,7 @@ module.exports = class Crypto {
       return false
     }
     const { publicKey, counter, previousCounter, ...message } = fullMessage
-    let session = this._chatKeys[id].session
+    let session = this._sessionKeys[id].session
     let receivingChain = session.receiving[publicKey]
     if (!receivingChain) {
       // Receiving ratchet for key does not exist so create one
@@ -278,7 +288,7 @@ module.exports = class Crypto {
       console.log('Calculated new receiving ratchet', receivingChain)
     }
     // Derive decryption credentials
-    const [decryptKey,, iv] = this._calcMessageKey(receivingChain)
+    const [decryptKey, , iv] = this._calcMessageKey(receivingChain)
     console.log(
       'Calculated decryption creds',
       decryptKey.toString('hex'),

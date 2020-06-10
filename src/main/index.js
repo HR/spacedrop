@@ -5,9 +5,11 @@
 const { app, Menu, ipcMain } = require('electron'),
   { basename } = require('path'),
   { is } = require('electron-util'),
+  debug = require('electron-debug'),
   unhandled = require('electron-unhandled'),
   contextMenu = require('electron-context-menu'),
   packageJson = require('../../package.json'),
+  Store = require('electron-store'),
   Crypto = require('./lib/Crypto'),
   Server = require('./lib/Server'),
   Peers = require('./lib/Peers'),
@@ -15,7 +17,7 @@ const { app, Menu, ipcMain } = require('electron'),
   windows = require('./windows')
 
 unhandled()
-// debug()
+debug()
 contextMenu()
 
 app.setAppUserModelId(packageJson.build.appId)
@@ -52,10 +54,62 @@ app.on('activate', windows.main.activate)
   await app.whenReady()
   Menu.setApplicationMenu(menu)
 
-  let transfers = {}
+  let identity,
+    wormholes = [
+      {
+        id: 'j9348jr3948rjlknwkendkkmkewdmkd',
+        name: 'Alice',
+        drops: [
+          {
+            name: 'lo_fi.mp3',
+            type: '↓',
+            path: '/tmp/lo_fi.mp3',
+            progress: 20040192,
+            total: 440401920,
+            rate: 2097152,
+            done: false
+          }
+        ]
+      },
+      {
+        id: 'jl348jr3938rjlknwkendkkmkewdmkd',
+        name: 'Bob',
+        drops: [
+          {
+            name: 'matrix.exe',
+            type: '↑',
+            path: '/tmp/lo_fi.mp3',
+            progress: 89040192,
+            total: 540401920,
+            rate: 1097152,
+            done: false
+          },
+          {
+            name: 'bro.pdf',
+            type: '↓',
+            path: '/tmp/lo_fi.mp3',
+            progress: 89040192,
+            total: 540401920,
+            rate: 3097152,
+            done: true
+          }
+        ]
+      }
+    ]
+  wormholes = []
+  const store = new Store({ name: 'launch' })
   const crypto = new Crypto()
   const server = new Server()
   const peers = new Peers(server, crypto)
+
+  identity = store.get('identity', false)
+  if (!identity) {
+    identity = crypto.generateIdentityKeyPair()
+    // TODO: Store private key in keychain or encrypt store (with key in keychain)
+    store.set('identity', identity)
+  }
+  console.log('Idenity key:', identity)
+  crypto.setIdentity(identity)
 
   /**
    * Server events
@@ -93,11 +147,15 @@ app.on('activate', windows.main.activate)
 
   // Populate UI
   windows.main.send('update-state', {
-    transfers
+    wormholes,
+    active: (wormholes.length && wormholes[0].id) || '',
+    identity: identity.publicKey
   })
   ipcMain.on('do-update-state', async () =>
     windows.main.send('update-state', {
-      transfers
+      wormholes,
+      active: (wormholes.length && wormholes[0].id) || '',
+      identity: identity.publicKey
     })
   )
 
@@ -129,7 +187,7 @@ app.on('activate', windows.main.activate)
       // Add chat if not already added
       await chats.add(id, publicKeyArmored, address)
       await crypto.addKey(id, publicKeyArmored)
-      windows.main.send('update-state', { chats: chats.getAll() })
+      // windows.main.send('update-state', { chats: chats.getAll() })
     }
     // Accept chat request by default
     server.send('chat-accept', {
@@ -145,11 +203,6 @@ app.on('activate', windows.main.activate)
     await chats.add(senderId, senderPublicKey, address)
     await crypto.addKey(senderId, senderPublicKey)
     // Update UI
-    windows.main.send(
-      'update-state',
-      { chats: chats.getAll(), activeChatId: senderId },
-      true
-    )
     // Establish a connection
     peers.connect(senderId)
   }
@@ -171,13 +224,13 @@ app.on('activate', windows.main.activate)
     // Set user as online
     chats.setOnline(userId)
     // Update UI
-    windows.main.send('update-state', { chats: chats.getAll() })
+    // windows.main.send('update-state', { chats: chats.getAll() })
   }
   async function peerDisconnectHandler (userId) {
     console.log('Disconnected with', userId)
     chats.setOffline(userId)
     // Update UI
-    windows.main.send('update-state', { chats: chats.getAll() })
+    // windows.main.send('update-state', { chats: chats.getAll() })
   }
   function peerErrorHandler (userId, err) {
     console.log('Error connecting with peer', userId)
@@ -186,7 +239,7 @@ app.on('activate', windows.main.activate)
   async function peerMessageHandler (senderId, message) {
     console.log('Got message', message)
     chats.addMessage(senderId, message)
-    windows.main.send('update-state', { chats: chats.getAll() })
+    // windows.main.send('update-state', { chats: chats.getAll() })
   }
 
   /* IPC handlers */
@@ -206,7 +259,7 @@ app.on('activate', windows.main.activate)
     // TODO: Copy media to media dir
     // Optimistically update UI
     chats.addMessage(receiverId, { ...message })
-    windows.main.send('update-state', { chats: chats.getAll() })
+    // windows.main.send('update-state', { chats: chats.getAll() })
 
     if (
       contentType === CONTENT_TYPES.IMAGE ||

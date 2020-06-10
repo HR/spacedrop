@@ -13,6 +13,7 @@ export default function Toolbar (props) {
             <i className='ion-ios-send' onClick={props.onSendClick} />
           </Button>
           <Button variant='dark'>
+            {/* <img src='../../../static/spacedrop.svg' /> */}
             <i className='ion-ios-add-circle' onClick={props.onAddClick} />
           </Button>
         </Col>
@@ -22,6 +23,9 @@ export default function Toolbar (props) {
           </Button>
           <Button variant='dark'>
             <i className='ion-ios-close-circle' onClick={props.onCancelClick} />
+          </Button>
+          <Button variant='dark'>
+            <i className='ion-ios-contact' onClick={props.onCopyIdentityClick} />
           </Button>
         </Col>
       </Row>

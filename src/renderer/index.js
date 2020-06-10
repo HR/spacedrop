@@ -33,6 +33,13 @@ window.onkeyup = function (e) {
   }
 }
 
+// Blur after click
+document.addEventListener('click', function (e) {
+  if (document.activeElement.toString() == '[object HTMLButtonElement]') {
+    document.activeElement.blur()
+  }
+})
+
 // Set theme accordingly
 setTheme()
 

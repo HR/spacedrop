@@ -1,10 +1,10 @@
 import React from 'react'
-import { ipcRenderer, remote } from 'electron'
+import { ipcRenderer, remote, clipboard } from 'electron'
 import { Container } from 'react-bootstrap'
 import { useNotifications } from '../lib/notifications'
 import { clone } from '../lib/util'
 import Toolbar from './Toolbar'
-import Drops from './Drops'
+import Wormholes from './Wormholes'
 import '../../../static/scss/index.scss'
 
 const { dialog } = remote
@@ -23,57 +23,21 @@ export default class App extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      drops: [
-        {
-          id: 'j9348jr3948rjlknwkendkkmkewdmkd',
-          name: 'Alice',
-          drops: [
-            {
-              name: 'lo_fi.mp3',
-              type: '↓',
-              path: '/tmp/lo_fi.mp3',
-              progress: 20040192,
-              total: 440401920,
-              rate: 2097152,
-              done: false
-            }
-          ]
-        },
-        {
-          id: 'jl348jr3938rjlknwkendkkmkewdmkd',
-          name: 'Bob',
-          drops: [
-            {
-              name: 'matrix.exe',
-              type: '↑',
-              path: '/tmp/lo_fi.mp3',
-              progress: 89040192,
-              total: 540401920,
-              rate: 1097152,
-              done: false
-            },
-            {
-              name: 'bro.pdf',
-              type: '↓',
-              path: '/tmp/lo_fi.mp3',
-              progress: 89040192,
-              total: 540401920,
-              rate: 3097152,
-              done: true
-            }
-          ]
-        }
-      ],
+      identity: '',
+      wormholes: [],
+      active: '',
       ...clone(initModalsState)
     }
 
     // Bindings
+    this.activate = this.activate.bind(this)
+    this.updateState = this.updateState.bind(this)
     this.closeModals = this.closeModals.bind(this)
     this.openModal = this.openModal.bind(this)
-    this.updateState = this.updateState.bind(this)
     this.showModalMessage = this.showModalMessage.bind(this)
     this.showModalError = this.showModalError.bind(this)
     this.sendFileHandler = this.sendFileHandler.bind(this)
+    this.copyIdentity = this.copyIdentity.bind(this)
 
     // Add event listeners
     ipcRenderer.on('open-modal', (event, modal) => this.openModal(modal))
@@ -88,16 +52,22 @@ export default class App extends React.Component {
     ipcRenderer.on('notify', (event, ...args) => notifications.show(...args))
     // Load state from main if not already loaded
     ipcRenderer.send('do-update-state')
+    console.log(this.state)
+  }
+
+  activate (active) {
+    this.setState({ active })
   }
 
   // Updates internal state thereby updating the UI
-  updateState (state, resetState) {
+  updateState (event, state, resetState) {
     let newState = { ...state }
     if (resetState) {
       // Reset state
       this.closeModals()
-      notifications.clear()
+      notifications && notifications.clear()
     }
+    console.log('ns', newState, resetState)
     this.setState(newState)
   }
 
@@ -126,7 +96,14 @@ export default class App extends React.Component {
   }
 
   // Handles sending a file
-  async sendFileHandler (type) {
+  async sendFileHandler () {
+    if (!this.state.active)
+      return notifications.show(
+        'No wormhole',
+        'error',
+        true,
+        3000
+      )
     const title = 'Select the file to send'
     // Filter based on type selected
     const filters = [{ name: 'All Files', extensions: ['*'] }]
@@ -141,7 +118,13 @@ export default class App extends React.Component {
     // Ignore if user cancelled
     if (canceled || !filePaths) return
     console.log(filePaths)
-    ipcRenderer.send('send-file', type, filePaths[0])
+    ipcRenderer.send('send-file', filePaths[0])
+  }
+
+  copyIdentity (e) {
+    clipboard.writeText(this.state.identity)
+    notifications.show('Copied Spacedrop ID', null, true, 3000)
+    if (e) e.preventDefault()
   }
 
   // Render the App UI
@@ -149,8 +132,15 @@ export default class App extends React.Component {
     return (
       <div className='App'>
         <Container>
-          <Toolbar />
-          <Drops drops={this.state.drops} />
+          <Toolbar
+            onSendClick={this.sendFileHandler}
+            onCopyIdentityClick={this.copyIdentity}
+          />
+          <Wormholes
+            active={this.state.active}
+            setActive={this.activate}
+            wormholes={this.state.wormholes}
+          />
         </Container>
       </div>
     )

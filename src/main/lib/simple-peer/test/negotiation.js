@@ -14,8 +14,8 @@ test('get config', function (t) {
 test('single negotiation', function (t) {
   t.plan(10)
 
-  var peer1 = new Peer({ config: config, initiator: true, stream: common.getMediaStream(), wrtc: common.wrtc })
-  var peer2 = new Peer({ config: config, stream: common.getMediaStream(), wrtc: common.wrtc })
+  var peer1 = new Peer({ config, initiator: true, stream: common.getMediaStream(), wrtc: common.wrtc })
+  var peer2 = new Peer({ config, stream: common.getMediaStream(), wrtc: common.wrtc })
 
   peer1.on('signal', function (data) { if (!peer2.destroyed) peer2.signal(data) })
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
@@ -55,8 +55,8 @@ test('single negotiation', function (t) {
 test('manual renegotiation', function (t) {
   t.plan(2)
 
-  var peer1 = new Peer({ config: config, initiator: true, wrtc: common.wrtc })
-  var peer2 = new Peer({ config: config, wrtc: common.wrtc })
+  var peer1 = new Peer({ config, initiator: true, wrtc: common.wrtc })
+  var peer2 = new Peer({ config, wrtc: common.wrtc })
 
   peer1.on('signal', function (data) { if (!peer2.destroyed) peer2.signal(data) })
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
@@ -76,8 +76,8 @@ test('manual renegotiation', function (t) {
 test('repeated manual renegotiation', function (t) {
   t.plan(6)
 
-  var peer1 = new Peer({ config: config, initiator: true, wrtc: common.wrtc })
-  var peer2 = new Peer({ config: config, wrtc: common.wrtc })
+  var peer1 = new Peer({ config, initiator: true, wrtc: common.wrtc })
+  var peer2 = new Peer({ config, wrtc: common.wrtc })
 
   peer1.on('signal', function (data) { if (!peer2.destroyed) peer2.signal(data) })
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
@@ -110,10 +110,15 @@ test('repeated manual renegotiation', function (t) {
 })
 
 test('renegotiation after addStream', function (t) {
+  if (common.isBrowser('ios')) {
+    t.pass('Skip on iOS which does not support this reliably')
+    t.end()
+    return
+  }
   t.plan(4)
 
-  var peer1 = new Peer({ config: config, initiator: true, wrtc: common.wrtc })
-  var peer2 = new Peer({ config: config, wrtc: common.wrtc })
+  var peer1 = new Peer({ config, initiator: true, wrtc: common.wrtc })
+  var peer2 = new Peer({ config, wrtc: common.wrtc })
 
   peer1.on('signal', function (data) { if (!peer2.destroyed) peer2.signal(data) })
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
@@ -138,12 +143,12 @@ test('add stream on non-initiator only', function (t) {
   t.plan(3)
 
   var peer1 = new Peer({
-    config: config,
+    config,
     initiator: true,
     wrtc: common.wrtc
   })
   var peer2 = new Peer({
-    config: config,
+    config,
     wrtc: common.wrtc,
     stream: common.getMediaStream()
   })
@@ -159,5 +164,37 @@ test('add stream on non-initiator only', function (t) {
   })
   peer1.on('stream', function () {
     t.pass('peer1 got stream')
+  })
+})
+
+test('negotiated channels', function (t) {
+  t.plan(2)
+
+  var peer1 = new Peer({
+    config,
+    initiator: true,
+    wrtc: common.wrtc,
+    channelConfig: {
+      id: 1,
+      negotiated: true
+    }
+  })
+  var peer2 = new Peer({
+    config,
+    wrtc: common.wrtc,
+    channelConfig: {
+      id: 1,
+      negotiated: true
+    }
+  })
+
+  peer1.on('signal', function (data) { if (!peer2.destroyed) peer2.signal(data) })
+  peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
+
+  peer1.on('connect', function () {
+    t.pass('peer1 connect')
+  })
+  peer2.on('connect', function () {
+    t.pass('peer2 connect')
   })
 })
