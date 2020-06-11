@@ -13,6 +13,7 @@ const { app, Menu, ipcMain, screen } = require('electron'),
   Crypto = require('./lib/Crypto'),
   Server = require('./lib/Server'),
   Peers = require('./lib/Peers'),
+  Wormholes = require('./lib/Wormholes'),
   menu = require('./menu'),
   windows = require('./windows')
 
@@ -58,73 +59,20 @@ app.on('activate', windows.main.activate)
   await app.whenReady()
   Menu.setApplicationMenu(menu)
 
-  let identity,
-    wormholes = [
-      {
-        id: 'j9348jr3948rjlknwkendkkmkewdmkd',
-        name: 'Alice',
-        online: true,
-        drops: [
-          {
-            name: 'lo_fi.mp3',
-            type: '↓',
-            path: '/tmp/lo_fi.mp3',
-            progress: 20040192,
-            total: 440401920,
-            rate: 2097152,
-            done: false
-          }
-        ]
-      },
-      {
-        id: 'jl348jr3938rjlknwkendkkmkewdmkd',
-        name: 'Bob',
-        online: true,
-        drops: [
-          {
-            name: 'matrix.exe',
-            type: '↑',
-            path: '/tmp/lo_fi.mp3',
-            progress: 89040192,
-            total: 540401920,
-            rate: 1097152,
-            done: false
-          },
-          {
-            name: 'bro.pdf',
-            type: '↓',
-            path: '/tmp/lo_fi.mp3',
-            progress: 89040192,
-            total: 540401920,
-            rate: 3097152,
-            done: true
-          }
-        ]
-      }
-    ]
-  wormholes = []
   const store = new Store({ name: db })
-  const crypto = new Crypto()
+  const wormholes = new Wormholes(store)
+  const crypto = new Crypto(store)
   const server = new Server()
   const peers = new Peers(server, crypto)
-
-  identity = store.get('identity', false)
-  if (!identity) {
-    identity = crypto.generateIdentity()
-    // TODO: Store private key in keychain or encrypt store (with key in keychain)
-    store.set('identity', identity)
-  }
-  console.log('Idenity key:', identity)
-  crypto.setIdentity(identity)
 
   /**
    * Server events
    *****************************/
-  // When the formation of new wormhole is requested to another user
-  server.on('wormhole-request', wormholeRequestHandler)
-  // When the other user accepts a wormhole formation, hence they curve the
-  // fabric of space/time to form one!
-  server.on('wormhole-accept', wormholeAcceptHandler)
+  // // When the formation of new wormhole is requested to another user
+  // server.on('wormhole-request', wormholeRequestHandler)
+  // // When the other user accepts a wormhole formation, hence they curve the
+  // // fabric of space/time to form one!
+  // server.on('wormhole-accept', wormholeAcceptHandler)
   // When the other user cannot be found, request got lost in space :(
   server.on('lost-in-space', notFoundHandler)
 
@@ -143,14 +91,18 @@ app.on('activate', windows.main.activate)
   /**
    * IPC events
    *****************************/
+  // When a wormhole is created by the user
+  ipcMain.on('create-wormhole', createWormholeHandler)
   // When a file is sent by the user
   ipcMain.on('send-file', sendFileHandler)
 
   /**
    * Init
    *****************************/
-  // Init main window
-  await windows.main.init()
+  // Init crypto and main window
+  const [identity] = await Promise.all([crypto.init(), windows.main.init()])
+  console.log(identity)
+
   // TODO: remove in prod
   if (secondWin) {
     const displays = screen.getAllDisplays()
@@ -163,15 +115,16 @@ app.on('activate', windows.main.activate)
       Math.round(y + (height - win.height) / 2)
     )
   }
+
   // Populate UI
   windows.main.send('update-state', {
-    wormholes,
+    wormholes: wormholes.getAll(),
     active: (wormholes.length && wormholes[0].id) || '',
     identity: identity.publicKey
   })
   ipcMain.on('do-update-state', async () =>
     windows.main.send('update-state', {
-      wormholes,
+      wormholes: wormholes.getAll(),
       active: (wormholes.length && wormholes[0].id) || '',
       identity: identity.publicKey
     })
@@ -180,9 +133,8 @@ app.on('activate', windows.main.activate)
   try {
     // Connect to the signal server
     const authRequest = crypto.generateAuthRequest()
-    console.log('Connecting with', authRequest)
     await server.connect(identity.publicKey, authRequest)
-    console.log('Connected to server')
+    console.info('Connected to server')
   } catch (error) {
     console.error(error)
     // Notify user of it
@@ -200,33 +152,6 @@ app.on('activate', windows.main.activate)
    *****************************/
 
   /* Server handlers */
-  async function wormholeRequestHandler ({ senderPublicKey: publicKeyArmored }) {
-    console.log('Chat request received')
-    // TODO: Check id against block/removed list and add to chats
-    const { id, address } = await crypto.getPublicKeyInfoOf(publicKeyArmored)
-    if (!chats.has(id)) {
-      // Add chat if not already added
-      await chats.add(id, publicKeyArmored, address)
-      await crypto.addKey(id, publicKeyArmored)
-      // windows.main.send('update-state', { chats: chats.getAll() })
-    }
-    // Accept chat request by default
-    server.send('womhole-accept', {
-      senderPublicKey: crypto.getPublicKey(),
-      receiverId: id
-    })
-    console.log('Chat request accepted')
-  }
-  async function wormholeAcceptHandler ({ senderId, senderPublicKey }) {
-    console.log('Chat request accepted')
-    const { address } = await crypto.getPublicKeyInfoOf(senderPublicKey)
-    // Add chat
-    await chats.add(senderId, senderPublicKey, address)
-    await crypto.addKey(senderId, senderPublicKey)
-    // Update UI
-    // Establish a connection
-    peers.connect(senderId)
-  }
   function notFoundHandler ({ type }) {
     if (type === 'wormhole-request') {
       windows.main.send(
@@ -264,6 +189,18 @@ app.on('activate', windows.main.activate)
   }
 
   /* IPC handlers */
+  async function createWormholeHandler (event, name, id) {
+    // Normalise the userId
+    ciphoraId = ciphoraId.toLowerCase()
+
+    // Send a chat request message to the recipient
+    server.send('chat-request', {
+      senderPublicKey: crypto.getPublicKey(),
+      receiverId: ciphoraId
+    })
+    console.log('Chat request sent')
+  }
+
   async function sendFileHandler (contentType, content, receiverId) {
     // Construct message
     let contentPath

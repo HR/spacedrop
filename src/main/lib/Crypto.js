@@ -6,10 +6,13 @@
 
 const crypto = require('crypto'),
   fs = require('fs'),
+  keytar = require('keytar'),
   hkdf = require('futoin-hkdf'),
   // TODO: Replace with crypto.diffieHellman once nodejs#26626 lands on v12 LTS
   { box, sign } = require('tweetnacl'),
   { chunk, hexToUint8, strToUint8, Uint8ToHex } = require('./util'),
+  SERVICE = 'spacedrop',
+  DB_KEY = 'publicKey',
   CIPHER = 'aes-256-cbc',
   RATCHET_KEYS_LEN = 64,
   RATCHET_KEYS_HASH = 'SHA-256',
@@ -20,26 +23,46 @@ const crypto = require('crypto'),
   RACHET_MESSAGE_COUNT = 10 // Rachet after this no of messages sent
 
 module.exports = class Crypto {
-  constructor () {
+  constructor (store) {
+    this._store = store
     this._sessionKeys = {}
-    this._identity = {}
+    this._identity
     // Bindings
+    this.init = this.init.bind(this)
   }
 
-  setIdentity (identity) {
-    identity.secretKey = hexToUint8(identity.secretKey)
-    this._identity = identity
+  async init () {
+    const publicKey = this._store.get(DB_KEY, false)
+    const secretKey =
+      publicKey && (await keytar.getPassword(SERVICE, publicKey))
+    // Restore keys if they exist
+    if (publicKey && secretKey) {
+      this._identity = { publicKey, secretKey: hexToUint8(secretKey) }
+      return this._identity
+    }
+    // Generate new ones otherwise
+    await this._generateIdentityKeyPair()
+    return this._identity
+  }
+
+  async _saveIdentity () {
+    this._store.set(DB_KEY, this._identity.publicKey)
+    // Save the private key in the OS's keychain under public key
+    await keytar.setPassword(
+      SERVICE,
+      this._identity.publicKey,
+      Uint8ToHex(this._identity.secretKey)
+    )
   }
 
   // Generates a new Curve25519 key pair
-  generateIdentity () {
-    let keyPair = (this._identity = sign.keyPair())
-    // Encode as hex
-    Object.keys(keyPair).map(function(key) {
-      keyPair[key] = Uint8ToHex(keyPair[key])
-    })
+  async _generateIdentityKeyPair () {
+    let keyPair = sign.keyPair()
     // Encode in hex for easier handling
-    return keyPair
+    keyPair.publicKey = Uint8ToHex(keyPair.publicKey)
+
+    this._identity = keyPair
+    await this._saveIdentity()
   }
 
   // Generates a server connection authentication request
@@ -48,7 +71,7 @@ module.exports = class Crypto {
     const signature = Uint8ToHex(
       sign.detached(strToUint8(timestamp), this._identity.secretKey)
     )
-    const publicKey = this._identity.publicKey
+    const { publicKey } = this._identity
     return { publicKey, timestamp, signature }
   }
 

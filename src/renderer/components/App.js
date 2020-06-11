@@ -106,6 +106,16 @@ export default class App extends React.Component {
   createWormhole ({ name, id }) {
     if (!name || !id)
       return notifications.show('Details missing', 'error', true, 3000)
+
+    const alreadyExists = this.state.wormholes.find(w => w.id === id)
+    const isMe = this.state.identity === id
+    if (alreadyExists || isMe)
+      return notifications.show('Already added', 'error', true, 3000)
+
+    // Show persistent composing notification
+    notifications.show('Warping space-time...', null, false)
+
+    ipcRenderer.send('create-wormhole', name, id)
   }
 
   copyIdentity (e) {
