@@ -2,7 +2,7 @@
 /**
  * Main App
  *****************************/
-const { app, Menu, ipcMain } = require('electron'),
+const { app, Menu, ipcMain, screen } = require('electron'),
   { basename } = require('path'),
   { is } = require('electron-util'),
   debug = require('electron-debug'),
@@ -21,6 +21,8 @@ debug()
 contextMenu()
 
 app.setAppUserModelId(packageJson.build.appId)
+let db = 'launch',
+  secondWin = false
 
 if (!is.development) {
   // Prevent multiple instances of the app
@@ -34,6 +36,8 @@ if (!is.development) {
   // Allow multiple instances of the app in dev
   if (!app.requestSingleInstanceLock()) {
     console.info('Second instance')
+    db += '2'
+    secondWin = true
   }
 }
 
@@ -59,6 +63,7 @@ app.on('activate', windows.main.activate)
       {
         id: 'j9348jr3948rjlknwkendkkmkewdmkd',
         name: 'Alice',
+        online: true,
         drops: [
           {
             name: 'lo_fi.mp3',
@@ -74,6 +79,7 @@ app.on('activate', windows.main.activate)
       {
         id: 'jl348jr3938rjlknwkendkkmkewdmkd',
         name: 'Bob',
+        online: true,
         drops: [
           {
             name: 'matrix.exe',
@@ -97,7 +103,7 @@ app.on('activate', windows.main.activate)
       }
     ]
   wormholes = []
-  const store = new Store({ name: 'launch' })
+  const store = new Store({ name: db })
   const crypto = new Crypto()
   const server = new Server()
   const peers = new Peers(server, crypto)
@@ -114,12 +120,13 @@ app.on('activate', windows.main.activate)
   /**
    * Server events
    *****************************/
-  // When a new file is offered by user
-  server.on('file-offer', chatRequestHandler)
-  // When the file offer is answered by another user
-  server.on('file-answer', chatAcceptHandler)
-  // When the user for a message cannot be found
-  server.on('not-found', receiverNotFoundHandler)
+  // When the formation of new wormhole is requested to another user
+  server.on('wormhole-request', wormholeRequestHandler)
+  // When the other user accepts a wormhole formation, hence they curve the
+  // fabric of space/time to form one!
+  server.on('wormhole-accept', wormholeAcceptHandler)
+  // When the other user cannot be found, request got lost in space :(
+  server.on('lost-in-space', notFoundHandler)
 
   /**
    * Peers events
@@ -144,7 +151,18 @@ app.on('activate', windows.main.activate)
    *****************************/
   // Init main window
   await windows.main.init()
-
+  // TODO: remove in prod
+  if (secondWin) {
+    const displays = screen.getAllDisplays()
+    const display = displays[displays.length - 1]
+    console.log(display)
+    const { x, y, width, height } = display.bounds
+    const win = windows.main.win.getBounds()
+    windows.main.win.setPosition(
+      Math.round(x + (width - win.width) / 2),
+      Math.round(y + (height - win.height) / 2)
+    )
+  }
   // Populate UI
   windows.main.send('update-state', {
     wormholes,
@@ -182,7 +200,7 @@ app.on('activate', windows.main.activate)
    *****************************/
 
   /* Server handlers */
-  async function chatRequestHandler ({ senderPublicKey: publicKeyArmored }) {
+  async function wormholeRequestHandler ({ senderPublicKey: publicKeyArmored }) {
     console.log('Chat request received')
     // TODO: Check id against block/removed list and add to chats
     const { id, address } = await crypto.getPublicKeyInfoOf(publicKeyArmored)
@@ -193,13 +211,13 @@ app.on('activate', windows.main.activate)
       // windows.main.send('update-state', { chats: chats.getAll() })
     }
     // Accept chat request by default
-    server.send('chat-accept', {
+    server.send('womhole-accept', {
       senderPublicKey: crypto.getPublicKey(),
       receiverId: id
     })
     console.log('Chat request accepted')
   }
-  async function chatAcceptHandler ({ senderId, senderPublicKey }) {
+  async function wormholeAcceptHandler ({ senderId, senderPublicKey }) {
     console.log('Chat request accepted')
     const { address } = await crypto.getPublicKeyInfoOf(senderPublicKey)
     // Add chat
@@ -209,8 +227,8 @@ app.on('activate', windows.main.activate)
     // Establish a connection
     peers.connect(senderId)
   }
-  function receiverNotFoundHandler ({ type }) {
-    if (type === 'chat-request') {
+  function notFoundHandler ({ type }) {
+    if (type === 'wormhole-request') {
       windows.main.send(
         'notify',
         'Recipient not on Spacedrop or is offline',

@@ -66,12 +66,6 @@ const debugSubmenu = [
     type: 'separator'
   },
   {
-    label: 'Delete Chat Messages',
-    click () {
-      app.emit('delete-messages')
-    }
-  },
-  {
     label: 'Delete App Data',
     click () {
       shell.moveItemToTrash(app.getPath('userData'))

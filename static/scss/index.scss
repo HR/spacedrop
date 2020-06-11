@@ -11,12 +11,7 @@
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
-  background-color: themed('windowBackgroundColor');
-
-  .danger {
-    background: themed('dangerColor') !important;
-    color: themed('dangerForegroundColor') !important;
-  }
+  background-color: themed('primaryBackgroundColor');
 
   code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',

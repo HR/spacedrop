@@ -21,13 +21,13 @@ async function init () {
     height: MAIN_WIN_HEIGHT,
     minWidth: 700,
     minHeight: 400,
-    // backgroundColor: '#00FFFFFF',
+    // secondaryBackgroundColor: '#00FFFFFF',
     frame: false,
     // vibrancy: 'appearance-based',
     titleBarStyle: 'hiddenInset',
     webPreferences: {
       nodeIntegration: true,
-      webSecurity: false // To allow local image loading
+      // webSecurity: false // To allow local image loading
     }
   }))
 

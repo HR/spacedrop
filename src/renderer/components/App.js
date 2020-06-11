@@ -49,7 +49,6 @@ export default class App extends React.Component {
     ipcRenderer.on('notify', (event, ...args) => notifications.show(...args))
     // Load state from main if not already loaded
     ipcRenderer.send('do-update-state')
-    console.log(this.state)
   }
 
   activate (active) {
@@ -64,7 +63,7 @@ export default class App extends React.Component {
       this.closeModals()
       notifications && notifications.clear()
     }
-    console.log('ns', newState, resetState)
+    console.log(newState, resetState)
     this.setState(newState)
   }
 

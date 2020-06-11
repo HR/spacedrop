@@ -10,15 +10,15 @@
 
   .notification {
     margin: 0 auto;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     width: 300px;
-    background: themed('backgroundColor');
+    background: themed('secondaryBackgroundColor');
     backdrop-filter: blur(20px);
     text-align: left;
     font-size: 14px;
     overflow: hidden;
     border-radius: 0.25rem;
-    padding: 8px 20px;
+    padding: 10px 20px;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -37,10 +37,10 @@
 
   .error.notification {
     background: themed('dangerColor');
-    color: themed('dangerForegroundColor');
+    color: themed('primaryForegroundColor');
 
     > .dismiss {
-      color: themed('dangerForegroundColor');
+      color: themed('primaryForegroundColor');
     }
   }
 }

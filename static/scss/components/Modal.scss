@@ -4,16 +4,17 @@
   $modal-margin: 1.4rem;
 
   .modal-content {
-    width: 90%;
+    width: 94%;
     margin: auto;
     border-radius: 0.25rem;
-    background: themed('modalBackgroundColor');
+    padding: 5px;
+    background: themed('primaryColor');
 
     button,
     button:active,
     button:hover,
     button:focus {
-      background: themed('modalButtonBackgroundColor') !important;
+      background: themed('primaryBackgroundColor') !important;
     }
 
     button.close,
@@ -35,7 +36,7 @@
   }
 
   .modal-body input {
-    background: themed('backgroundColor');
+    background: themed('secondaryBackgroundColor');
     color: themed('primaryForegroundColor');
     border: none;
   }

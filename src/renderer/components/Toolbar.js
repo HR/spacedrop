@@ -13,8 +13,8 @@ export default function Toolbar (props) {
             <i className='ion-ios-send' onClick={props.onSendClick} />
           </Button>
           <Button variant='dark'>
-            {/* <img src='../../../static/spacedrop.svg' /> */}
-            <i className='ion-ios-add-circle' onClick={props.onCreateWormholeClick} />
+            <img src='../../../static/spacedrop.svg' className='icon' onClick={props.onCreateWormholeClick} />
+            {/* <i className='ion-ios-add-circle'  /> */}
           </Button>
         </Col>
         <Col>

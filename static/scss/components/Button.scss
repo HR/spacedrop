@@ -9,8 +9,8 @@
     outline: none;
     margin: 0;
     text-decoration: none;
-    background: themed('buttonBackgroundColor');
-    color: themed('buttonForegroundColor');
+    background: themed('primaryColor');
+    color: themed('primaryForegroundColor');
     font-size: 15px;
     font-weight: bold;
     text-align: center;
@@ -18,7 +18,7 @@
   }
   
   button:active, button:hover, button:focus  {
-    background: themed('buttonBackgroundColor');
+    background: themed('primaryColor');
     border: none;
     box-shadow: none !important;
   }
@@ -28,6 +28,6 @@
   }
 
   button:disabled {
-    background: themed('backgroundColor');
+    background: themed('secondaryBackgroundColor');
   }
 }

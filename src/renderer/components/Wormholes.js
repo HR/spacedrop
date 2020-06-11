@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Tabs, Tab } from 'react-bootstrap'
+import { classList } from '../lib/util'
 import Drop from './Drop'
 
 export default function Wormholes (props) {
@@ -23,9 +24,18 @@ export default function Wormholes (props) {
           onSelect={props.setActive}
           variant='pills'
         >
-          {wormholes.map(drop => (
-            <Tab key={drop.id} eventKey={drop.id} title={drop.name}>
-              {drop.drops.map(drop => (
+          {wormholes.map(hole => (
+            <Tab
+              key={hole.id}
+              eventKey={hole.id}
+              title={
+                <React.Fragment>
+                  {hole.name}
+                  <div className={classList({ online: hole.online })}></div>
+                </React.Fragment>
+              }
+            >
+              {hole.drops.map(drop => (
                 <Drop key={drop.name} {...drop} />
               ))}
             </Tab>
@@ -33,7 +43,7 @@ export default function Wormholes (props) {
         </Tabs>
       ) : (
         <div className='noholes'>
-          <i className='ion-ios-add-circle' />
+          <img src='../../../static/spacedrop.svg' />
           <br />
           Create a new wormhole to drop files
         </div>
