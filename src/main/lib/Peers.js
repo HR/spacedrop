@@ -14,16 +14,15 @@ const stream = require('stream'),
   moment = require('moment'),
   Peer = require('./simple-peer'),
   Queue = require('./Queue'),
-  { CONTENT_TYPES } = require('../../consts'),
   { MEDIA_DIR } = require('../../config'),
   // http://viblast.com/blog/2015/2/5/webrtc-data-channel-message-size/
-  MESSAGE_CHUNK_SIZE = 16 * 1024, // (16kb)
-  MESSAGE_STREAM_RATE = 50 // ms
+  DROP_CHUNK_SIZE = 16 * 1024, // (16kb)
+  DROP_STREAM_RATE = 50 // ms
 const { mkdir } = fs.promises
 const pipeline = util.promisify(stream.pipeline)
 
 module.exports = class Peers extends EventEmitter {
-  constructor (signal, crypto, chats) {
+  constructor (signal, crypto) {
     // Ensure singleton
     if (!!Peers.instance) {
       return Peers.instance
@@ -36,7 +35,6 @@ module.exports = class Peers extends EventEmitter {
     this._requests = {}
     this._signal = signal
     this._crypto = crypto
-    this._chats = chats
     this._sendingQueue = new Queue()
     this._receivingQueue = new Queue()
 
@@ -89,19 +87,17 @@ module.exports = class Peers extends EventEmitter {
 
   // Checks if given peer is connected
   isConnected (id) {
-    return this._peers[id] && this._peers[id].connected
+    return this._peers[id]
   }
 
   // Queues a chat message to be sent to given peer
-  send (userId, ...args) {
-    this._sendingQueue.add(() => this._send('message', ...args), userId)
+  send (messageId, ...args) {
+    this._sendingQueue.add(() => this._send('drop', ...args), messageId)
   }
 
   // Handles signal requests
   _onSignalRequest ({ senderId, timestamp }) {
     console.log('Signal request received')
-    // Ensure chat exists with signal sender
-    if (!this._chats.has(senderId)) return console.log('Rejected as no chat')
 
     const request = this._requests[senderId]
     // If a request to the sender has not already been sent then just accept it
@@ -179,11 +175,10 @@ module.exports = class Peers extends EventEmitter {
   _addPeer (initiator, userId) {
     const peer = (this._peers[userId] = new Peer({
       initiator,
-      wrtc: wrtc,
+      wrtc,
       reconnectTimer: 1000
     }))
     const type = initiator ? 'Sender' : 'Receiver'
-    peer.connected = false
 
     peer.on('signal', data => {
       // Trickle signal data to the peer
@@ -195,7 +190,6 @@ module.exports = class Peers extends EventEmitter {
     })
 
     peer.on('connect', async () => {
-      peer.connected = true
       // Initialises a chat session
       const keyMessage = await this._crypto.initSession(userId)
       // Send the master secret public key with signature to the user
@@ -205,7 +199,7 @@ module.exports = class Peers extends EventEmitter {
     })
 
     peer.on('close', () => {
-      peer.connected = false
+      this._removePeer(userId)
       this.emit('disconnect', userId)
     })
 
@@ -237,78 +231,59 @@ module.exports = class Peers extends EventEmitter {
       this._crypto.startSession(userId, message)
       return
     }
-
-    if (message.contentType === CONTENT_TYPES.TEXT) {
-      // Decrypt received text message
-      const { decryptedMessage } = await this._crypto.decrypt(userId, message)
-      // Ignore if validation failed
-      if (!decryptedMessage) return
-      this.emit(type, userId, decryptedMessage)
-      return
-    }
   }
 
-  // Handles new data channels (file streams)
-  async _onDataChannel (userId, receivingStream, id) {
-    console.log('------> Got new datachannel', id)
-    const { type, ...message } = JSON.parse(id)
-    let { decryptedMessage, contentDecipher } = await this._crypto.decrypt(
+  // Handles new data channels (drops/file streams)
+  async _onDataChannel (userId, receivingStream, rawDrop) {
+    console.log('------> Received a new drop (datachannel)', rawDrop)
+    const { type, ...drop } = JSON.parse(rawDrop)
+    let [decDrop, fileDecipher] = await this._crypto.decrypt(
       userId,
-      message,
-      true
+      drop
     )
     // Ignore if validation failed
-    if (!decryptedMessage) return
-    const mediaDir = path.join(MEDIA_DIR, userId, message.contentType)
+    if (!decDrop) return
+    const mediaDir = path.join(MEDIA_DIR, userId)
     // Recursively make media directory
     await mkdir(mediaDir, { recursive: true })
-    const contentPath = path.join(mediaDir, decryptedMessage.content)
-    console.log('Writing to', contentPath)
-    const contentWriteStream = fs.createWriteStream(contentPath)
+    const filePath = path.join(mediaDir, decDrop.name)
+    decDrop.name = filePath
+    console.log('Writing to', filePath)
+    const fileWriteStream = fs.createWriteStream(filePath)
     // Stream content
-    await pipeline(receivingStream, contentDecipher, contentWriteStream)
-    decryptedMessage.content = contentPath
-    this.emit(type, userId, decryptedMessage)
+    await pipeline(receivingStream, fileDecipher, fileWriteStream)
+    this.emit(type, userId, decDrop)
   }
 
   // Sends a message to given peer
-  async _send (type, receiverId, message, encrypt, contentPath) {
+  async _send (type, receiverId, drop, filePath) {
     // TODO: Queue message if not connected / no session for later
     if (!this.isConnected(receiverId)) return false
 
     const peer = this._peers[receiverId]
 
-    if (encrypt) {
-      // Encrypt message
-      var { encryptedMessage, contentCipher } = await this._crypto.encrypt(
-        receiverId,
-        message,
-        contentPath
-      )
-      message = encryptedMessage
-    }
+    // Encrypt message
+    const [encDrop, fileCipher] = await this._crypto.encrypt(
+      receiverId,
+      drop,
+      filePath
+    )
 
-    const serializedMessage = JSON.stringify({
+    const serializedDrop = JSON.stringify({
       type,
-      ...message
+      ...encDrop
     })
 
-    // Simply send message if no file to stream
-    if (!contentPath) {
-      peer.write(serializedMessage)
-      console.log(type, 'sent', message)
-      return
-    }
-
     // Stream file
-    console.log('Streaming', message, contentPath)
-    const contentReadStream = fs.createReadStream(contentPath)
-    const sendingStream = peer.createDataChannel(serializedMessage)
+    console.log('Streaming', drop, filePath)
+    const fileReadStream = fs.createReadStream(filePath)
+    const sendingStream = peer.createDataChannel(serializedDrop)
+
     await pipeline(
-      contentReadStream,
-      contentCipher,
+      fileReadStream,
+      fileCipher,
       // Throttle stream (backpressure)
-      brake(MESSAGE_CHUNK_SIZE, { period: MESSAGE_STREAM_RATE }),
+      brake(DROP_CHUNK_SIZE, { period: DROP_STREAM_RATE }),
       sendingStream
     )
   }

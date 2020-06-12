@@ -5,7 +5,7 @@ const DB_KEY = 'wormholes'
 module.exports = class Wormholes {
   constructor (store) {
     this._store = store
-    this._wormholes = this._store.get(DB_KEY, [])
+    this._wormholes = this._store.get(DB_KEY, {})
   }
 
   // Gets the wormhole
@@ -13,9 +13,16 @@ module.exports = class Wormholes {
     return this._wormholes
   }
 
-  // Checks if a wormhole exist
-  exist () {
-    return Object.keys(this._wormholes).length > 0
+  // Gets the wormhole
+  getList () {
+    return Object.values(this._wormholes)
+  }
+
+  getActive() {
+    const arr = Object.values(this._wormholes)
+    if (!arr.length) return ''
+    const online = arr.find(w => w.online)
+    return (online && online.id) || arr[0].id
   }
 
   // Checks if a wormhole exists
@@ -56,18 +63,10 @@ module.exports = class Wormholes {
     return this.has(id) && (this._wormholes[id].online = false)
   }
 
-  // Deletes all the wormhole messages
-  deleteAllMessages () {
-    for (const wormhole in this._wormholes) {
-      if (!this._wormholes.hasOwnProperty(wormhole)) continue
-      this._wormholes[wormhole].messages = []
-    }
-    this._saveAll()
-  }
-
   // Saves wormhole to the store
   _saveAll () {
+    console.log('Saving wormhole', this._wormholes)
     this._store.set(DB_KEY, this._wormholes)
-    console.log('Saved wormhole')
+    console.log('Saved wormhole', this._wormholes)
   }
 }

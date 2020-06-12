@@ -66,17 +66,6 @@ app.on('activate', windows.main.activate)
   const peers = new Peers(server, crypto)
 
   /**
-   * Server events
-   *****************************/
-  // // When the formation of new wormhole is requested to another user
-  // server.on('wormhole-request', wormholeRequestHandler)
-  // // When the other user accepts a wormhole formation, hence they curve the
-  // // fabric of space/time to form one!
-  // server.on('wormhole-accept', wormholeAcceptHandler)
-  // When the other user cannot be found, request got lost in space :(
-  server.on('lost-in-space', notFoundHandler)
-
-  /**
    * Peers events
    *****************************/
   // When a new connection with a user is established
@@ -86,15 +75,19 @@ app.on('activate', windows.main.activate)
   // When a connection error with a user occurs
   peers.on('error', peerErrorHandler)
   // When a new message from a user is received
-  peers.on('message', peerMessageHandler)
+  peers.on('drop', peerDropHandler)
 
   /**
    * IPC events
    *****************************/
-  // When a wormhole is created by the user
+  // When a wormhole is created by user
   ipcMain.on('create-wormhole', createWormholeHandler)
-  // When a file is sent by the user
-  ipcMain.on('send-file', sendFileHandler)
+  // When a wormhole is selected by user
+  ipcMain.on('activate-wormhole', (event, id) =>
+    store.set('state.lastActive', id)
+  )
+  // When a file is sent by user
+  ipcMain.on('drop', dropHandler)
 
   /**
    * Init
@@ -117,18 +110,8 @@ app.on('activate', windows.main.activate)
   }
 
   // Populate UI
-  windows.main.send('update-state', {
-    wormholes: wormholes.getAll(),
-    active: (wormholes.length && wormholes[0].id) || '',
-    identity: identity.publicKey
-  })
-  ipcMain.on('do-update-state', async () =>
-    windows.main.send('update-state', {
-      wormholes: wormholes.getAll(),
-      active: (wormholes.length && wormholes[0].id) || '',
-      identity: identity.publicKey
-    })
-  )
+  updateState(true)
+  ipcMain.on('do-update-state', () => updateState(true))
 
   try {
     // Connect to the signal server
@@ -147,90 +130,90 @@ app.on('activate', windows.main.activate)
     )
   }
 
+  // Establish connections with all chat peers
+  wormholes
+    .getList()
+    .filter(wormhole => !peers.has(wormhole.id)) // Ignore ones already connecting to
+    .forEach(wormhole => peers.connect(wormhole.id))
+
   /**
    * Handlers
    *****************************/
 
-  /* Server handlers */
-  function notFoundHandler ({ type }) {
-    if (type === 'wormhole-request') {
-      windows.main.send(
-        'notify',
-        'Recipient not on Spacedrop or is offline',
-        'error',
-        true,
-        4000
-      )
-    }
-  }
-
   /* Peers handlers */
   async function peerConnectHandler (userId) {
     console.log('Connected with', userId)
+
+    // New wormhole
+    if (!wormholes.has(userId)) {
+      wormholes.add(userId, userId.slice(0, 6) + '...')
+    }
+
     // Set user as online
-    chats.setOnline(userId)
+    wormholes.setOnline(userId)
     // Update UI
-    // windows.main.send('update-state', { chats: chats.getAll() })
+    updateState()
   }
   async function peerDisconnectHandler (userId) {
     console.log('Disconnected with', userId)
-    chats.setOffline(userId)
+    wormholes.setOffline(userId)
     // Update UI
-    // windows.main.send('update-state', { chats: chats.getAll() })
+    updateState()
   }
   function peerErrorHandler (userId, err) {
     console.log('Error connecting with peer', userId)
     console.error(err)
   }
-  async function peerMessageHandler (senderId, message) {
-    console.log('Got message', message)
-    chats.addMessage(senderId, message)
-    // windows.main.send('update-state', { chats: chats.getAll() })
+  async function peerDropHandler (senderId, drop) {
+    console.log('Got drop', drop)
+    wormholes.addDrop(senderId, drop)
+    updateState()
   }
 
   /* IPC handlers */
-  async function createWormholeHandler (event, name, id) {
-    // Normalise the userId
-    ciphoraId = ciphoraId.toLowerCase()
+  function updateState (init = false, reset = false) {
+    let state = { wormholes: wormholes.getList() }
+    let lastActive = store.get('state.lastActive', false)
 
-    // Send a chat request message to the recipient
-    server.send('chat-request', {
-      senderPublicKey: crypto.getPublicKey(),
-      receiverId: ciphoraId
-    })
-    console.log('Chat request sent')
+    if (init) {
+      state.identity = identity.publicKey
+      state.active = lastActive
+    }
+
+    if (!lastActive) {
+      lastActive = wormholes.getActive()
+      store.set('state.lastActive', lastActive)
+      state.active = lastActive
+    }
+
+    windows.main.send('update-state', state, reset)
   }
 
-  async function sendFileHandler (contentType, content, receiverId) {
+  async function createWormholeHandler (event, id, name) {
+    wormholes.add(id, name)
+    updateState(false, true)
+    // Establish wormhole
+    peers.connect(id)
+  }
+
+  async function dropHandler (id, contentPath) {
     // Construct message
-    let contentPath
     let message = {
-      sender: profile.id,
-      content,
-      contentType, // mime-type of message
+      sender: identity.publicKey,
+      name: basename(contentPath),
+      hash: await crypto.hashFile(contentPath),
       timestamp: new Date().toISOString()
     }
 
     // Set the id of the message to its hash
     message.id = crypto.hash(JSON.stringify(message))
-    console.log('Adding message', message)
+    console.log('Dropping ', message)
     // TODO: Copy media to media dir
     // Optimistically update UI
-    chats.addMessage(receiverId, { ...message })
-    // windows.main.send('update-state', { chats: chats.getAll() })
-
-    if (
-      contentType === CONTENT_TYPES.IMAGE ||
-      contentType === CONTENT_TYPES.FILE
-    ) {
-      contentPath = content
-      // Set to file name
-      message.content = basename(contentPath)
-      // Hash content for verification
-      message.contentHash = await crypto.hashFile(contentPath)
-    }
+    wormholes.addDrop(id, { ...message })
+    updateState()
 
     // Send the message
-    peers.send(message.id, receiverId, message, true, contentPath)
+    peers.send(message.id, id, message, contentPath)
   }
 })()

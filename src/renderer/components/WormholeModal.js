@@ -1,9 +1,15 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Modal, Form, Button } from 'react-bootstrap'
 
 export default function WormholeModal (props) {
   const [name, setName] = useState('')
   const [id, setID] = useState('')
+
+  // Clear on dismissal
+  useEffect(() => {
+    setName('')
+    setID('')
+  }, [props.show])
 
   return (
     <Modal

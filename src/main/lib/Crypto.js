@@ -25,7 +25,7 @@ const crypto = require('crypto'),
 module.exports = class Crypto {
   constructor (store) {
     this._store = store
-    this._sessionKeys = {}
+    this._sessions = {}
     this._identity
     // Bindings
     this.init = this.init.bind(this)
@@ -65,12 +65,22 @@ module.exports = class Crypto {
     await this._saveIdentity()
   }
 
+  sign (data) {
+    return Uint8ToHex(sign.detached(strToUint8(data), this._identity.secretKey))
+  }
+
+  verify (publicKey, data, signature) {
+    return sign.detached.verify(
+      strToUint8(data),
+      hexToUint8(signature),
+      hexToUint8(publicKey)
+    )
+  }
+
   // Generates a server connection authentication request
   generateAuthRequest () {
     const timestamp = new Date().toISOString()
-    const signature = Uint8ToHex(
-      sign.detached(strToUint8(timestamp), this._identity.secretKey)
-    )
+    const signature = this.sign(timestamp)
     const { publicKey } = this._identity
     return { publicKey, timestamp, signature }
   }
@@ -128,7 +138,7 @@ module.exports = class Crypto {
     // Generates a new ephemeral ratchet Curve25519 key pair for chat
     let { publicKey, secretKey } = this._generateRatchetKeyPair()
     // Initialise session object
-    this._sessionKeys[id].session = {
+    this._sessions[id] = {
       currentRatchet: {
         sendingKeys: {
           publicKey,
@@ -142,7 +152,7 @@ module.exports = class Crypto {
     // Sign public key
     const timestamp = new Date().toISOString()
     const signature = await this.sign(publicKey + timestamp)
-    console.log('Initialised new session', this._sessionKeys[id].session)
+    console.log('Initialised new session', this._sessions[id])
     return { publicKey, timestamp, signature }
   }
 
@@ -154,7 +164,7 @@ module.exports = class Crypto {
     // Ignore if new encryption session if signature not valid
     if (!sigValid) return console.log('PubKey sig invalid', publicKey)
 
-    const ratchet = this._sessionKeys[id].session.currentRatchet
+    const ratchet = this._sessions[id].currentRatchet
     const { secretKey } = ratchet.sendingKeys
     ratchet.receivingKey = publicKey
     // Derive shared master secret and root key
@@ -167,7 +177,7 @@ module.exports = class Crypto {
     console.log(
       'Initialised Session',
       rootKey.toString('hex'),
-      this._sessionKeys[id].session
+      this._sessions[id]
     )
   }
 
@@ -249,8 +259,8 @@ module.exports = class Crypto {
   }
 
   // Encrypts a message
-  async encrypt (id, message, isFile) {
-    let session = this._sessionKeys[id].session
+  async encrypt (id, drop) {
+    let session = this._sessions[id]
     let ratchet = session.currentRatchet
     let sendingChain = session.sending[ratchet.sendingKeys.publicKey]
     // Ratchet after every RACHET_MESSAGE_COUNT of messages
@@ -262,7 +272,7 @@ module.exports = class Crypto {
     }
     const { previousCounter } = ratchet
     const { publicKey } = ratchet.sendingKeys
-    const [encryptKey, , iv] = this._calcMessageKey(sendingChain)
+    const [encryptKey, hmac, iv] = this._calcMessageKey(sendingChain)
     console.log(
       'Calculated encryption creds',
       encryptKey.toString('hex'),
@@ -270,39 +280,35 @@ module.exports = class Crypto {
     )
     const { counter } = sendingChain.chain
     // Encrypt message contents
-    const messageCipher = crypto.createCipheriv(CIPHER, encryptKey, iv)
-    const content =
-      messageCipher.update(message.content, 'utf8', 'hex') +
-      messageCipher.final('hex')
+    const nameCipher = crypto.createCipheriv(CIPHER, encryptKey, iv)
+    const name =
+      nameCipher.update(drop.name, 'utf8', 'hex') +
+      nameCipher.final('hex')
 
     // Construct full message
-    let encryptedMessage = {
-      ...message,
+    let encDrop = {
+      ...drop,
       publicKey,
       previousCounter,
       counter,
-      content
+      name
     }
     // Sign message with PGP
-    encryptedMessage.signature = await this.sign(
-      JSON.stringify(encryptedMessage)
+    encDrop.signature = await this.sign(
+      JSON.stringify(encDrop)
     )
 
-    if (isFile) {
-      // Return cipher
-      const contentCipher = crypto.createCipheriv(CIPHER, encryptKey, iv)
-      return { encryptedMessage, contentCipher }
-    }
-
-    return { encryptedMessage }
+    // Return cipher
+    const fileCipher = crypto.createCipheriv(CIPHER, encryptKey, iv)
+    return [encDrop, fileCipher]
   }
 
   // Decrypts a message
-  async decrypt (id, signedMessage, isFile) {
-    const { signature, ...fullMessage } = signedMessage
+  async decrypt (id, signedDrop) {
+    const { signature, ...fullMessage: fullDrop } = signedDrop
     const sigValid = await this.verify(
       id,
-      JSON.stringify(fullMessage),
+      JSON.stringify(fullDrop),
       signature
     )
     // Ignore message if signature invalid
@@ -310,8 +316,8 @@ module.exports = class Crypto {
       console.log('Message signature invalid!')
       return false
     }
-    const { publicKey, counter, previousCounter, ...message } = fullMessage
-    let session = this._sessionKeys[id].session
+    const { publicKey, counter, previousCounter, ...drop } = fullDrop
+    let session = this._sessions[id]
     let receivingChain = session.receiving[publicKey]
     if (!receivingChain) {
       // Receiving ratchet for key does not exist so create one
@@ -319,27 +325,23 @@ module.exports = class Crypto {
       console.log('Calculated new receiving ratchet', receivingChain)
     }
     // Derive decryption credentials
-    const [decryptKey, , iv] = this._calcMessageKey(receivingChain)
+    const [decryptKey, hmac, iv] = this._calcMessageKey(receivingChain)
     console.log(
       'Calculated decryption creds',
       decryptKey.toString('hex'),
       iv.toString('hex')
     )
     // Decrypt the message contents
-    const messageDecipher = crypto.createDecipheriv(CIPHER, decryptKey, iv)
-    const content =
-      messageDecipher.update(message.content, 'hex', 'utf8') +
-      messageDecipher.final('utf8')
-    console.log('--> Decrypted content', content)
+    const nameDecipher = crypto.createDecipheriv(CIPHER, decryptKey, iv)
+    const name =
+      nameDecipher.update(drop.name, 'hex', 'utf8') +
+      nameDecipher.final('utf8')
+    console.log('--> Decrypted content', name)
 
-    const decryptedMessage = { ...message, content }
+    const decDrop = { ...drop, name }
 
-    if (isFile) {
-      // Return Decipher
-      const contentDecipher = crypto.createDecipheriv(CIPHER, decryptKey, iv)
-      return { decryptedMessage, contentDecipher }
-    }
-
-    return { decryptedMessage }
+    // Return Decipher
+    const fileDecipher = crypto.createDecipheriv(CIPHER, decryptKey, iv)
+    return [decDrop, fileDecipher]
   }
 }

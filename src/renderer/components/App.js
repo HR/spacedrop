@@ -52,6 +52,7 @@ export default class App extends React.Component {
   }
 
   activate (active) {
+    ipcRenderer.send('activate-wormhole', active)
     this.setState({ active })
   }
 
@@ -60,7 +61,7 @@ export default class App extends React.Component {
     let newState = { ...state }
     if (resetState) {
       // Reset state
-      this.closeModals()
+      Object.assign(newState, clone(initModalsState))
       notifications && notifications.clear()
     }
     console.log(newState, resetState)
@@ -84,8 +85,12 @@ export default class App extends React.Component {
 
   // Handles sending a file
   async sendFileHandler () {
-    if (!this.state.active)
+    if (!this.state.wormholes.length)
       return notifications.show('No wormhole', 'error', true, 3000)
+    if (!this.state.active)
+      return notifications.show('No wormhole selected', 'error', true, 3000)
+    // if (!this.state.active)
+    //   return notifications.show('Wormhole offline', 'error', true, 3000)
     const title = 'Select the file to send'
     // Filter based on type selected
     const filters = [{ name: 'All Files', extensions: ['*'] }]
@@ -100,11 +105,11 @@ export default class App extends React.Component {
     // Ignore if user cancelled
     if (canceled || !filePaths) return
     console.log(filePaths)
-    ipcRenderer.send('send-file', filePaths[0])
+    ipcRenderer.send('drop', this.state.active, filePaths[0])
   }
 
-  createWormhole ({ name, id }) {
-    if (!name || !id)
+  createWormhole ({ id, name }) {
+    if (!id || !name)
       return notifications.show('Details missing', 'error', true, 3000)
 
     const alreadyExists = this.state.wormholes.find(w => w.id === id)
@@ -115,7 +120,7 @@ export default class App extends React.Component {
     // Show persistent composing notification
     notifications.show('Warping space-time...', null, false)
 
-    ipcRenderer.send('create-wormhole', name, id)
+    ipcRenderer.send('create-wormhole', id, name)
   }
 
   copyIdentity (e) {
