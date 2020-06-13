@@ -66,6 +66,12 @@ const debugSubmenu = [
     type: 'separator'
   },
   {
+    label: 'Delete Drops',
+    click () {
+      app.emit('delete-drops')
+    }
+  },
+  {
     label: 'Delete App Data',
     click () {
       shell.moveItemToTrash(app.getPath('userData'))

@@ -293,10 +293,13 @@ module.exports = class Crypto {
       counter,
       name
     }
+    
     // Sign message with PGP
     encDrop.signature = await this.sign(
       JSON.stringify(encDrop)
     )
+
+    console.log('Encrypted', encDrop)
 
     // Return cipher
     const fileCipher = crypto.createCipheriv(CIPHER, encryptKey, iv)
@@ -305,7 +308,7 @@ module.exports = class Crypto {
 
   // Decrypts a message
   async decrypt (id, signedDrop) {
-    const { signature, ...fullMessage: fullDrop } = signedDrop
+    const { signature, ...fullDrop } = signedDrop
     const sigValid = await this.verify(
       id,
       JSON.stringify(fullDrop),

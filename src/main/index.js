@@ -9,6 +9,7 @@ const { app, Menu, ipcMain, screen } = require('electron'),
   unhandled = require('electron-unhandled'),
   contextMenu = require('electron-context-menu'),
   packageJson = require('../../package.json'),
+  { DROP_TYPE } = require('../consts'),
   Store = require('electron-store'),
   Crypto = require('./lib/Crypto'),
   Server = require('./lib/Server'),
@@ -64,6 +65,13 @@ app.on('activate', windows.main.activate)
   const crypto = new Crypto(store)
   const server = new Server()
   const peers = new Peers(server, crypto)
+  /**
+   * App events
+   *****************************/
+  app.on('delete-drops', () => {
+    wormholes.clearDrops()
+    updateState()
+  })
 
   /**
    * Peers events
@@ -76,6 +84,8 @@ app.on('activate', windows.main.activate)
   peers.on('error', peerErrorHandler)
   // When a new message from a user is received
   peers.on('drop', peerDropHandler)
+  // When a new progress update for a drop is received
+  peers.on('progress', peerDropProgressHandler)
 
   /**
    * IPC events
@@ -166,7 +176,17 @@ app.on('activate', windows.main.activate)
   }
   async function peerDropHandler (senderId, drop) {
     console.log('Got drop', drop)
-    wormholes.addDrop(senderId, drop)
+    wormholes.addDrop(senderId, drop.id, {
+      type: DROP_TYPE.DOWNLOAD,
+      ...drop
+    })
+    updateState()
+  }
+
+  function peerDropProgressHandler (receiverId, dropId, progress) {
+    console.log('Got progress', receiverId, dropId, progress)
+    if (progress.percentage >= 99) progress.done = true
+    wormholes.updateDrop(receiverId, dropId, progress)
     updateState()
   }
 
@@ -196,24 +216,26 @@ app.on('activate', windows.main.activate)
     peers.connect(id)
   }
 
-  async function dropHandler (id, contentPath) {
+  async function dropHandler (event, id, filePath) {
     // Construct message
-    let message = {
-      sender: identity.publicKey,
-      name: basename(contentPath),
-      hash: await crypto.hashFile(contentPath),
-      timestamp: new Date().toISOString()
+    let drop = {
+      name: basename(filePath),
+      timestamp: Date.now()
     }
 
     // Set the id of the message to its hash
-    message.id = crypto.hash(JSON.stringify(message))
-    console.log('Dropping ', message)
+    drop.id = crypto.hash(JSON.stringify(drop))
+    console.log('Dropping ', drop, ' to ', id)
     // TODO: Copy media to media dir
     // Optimistically update UI
-    wormholes.addDrop(id, { ...message })
+    wormholes.addDrop(id, drop.id, {
+      type: DROP_TYPE.UPLOAD,
+      path: filePath,
+      ...drop
+    })
     updateState()
 
     // Send the message
-    peers.send(message.id, id, message, contentPath)
+    peers.send(drop.id, id, drop, filePath)
   }
 })()

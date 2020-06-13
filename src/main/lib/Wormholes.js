@@ -18,7 +18,7 @@ module.exports = class Wormholes {
     return Object.values(this._wormholes)
   }
 
-  getActive() {
+  getActive () {
     const arr = Object.values(this._wormholes)
     if (!arr.length) return ''
     const online = arr.find(w => w.online)
@@ -36,7 +36,7 @@ module.exports = class Wormholes {
       id,
       name,
       online: false,
-      drops: []
+      drops: {}
     }
     this._saveAll()
   }
@@ -48,8 +48,14 @@ module.exports = class Wormholes {
   }
 
   // Adds a drop
-  addDrop (id, drop) {
-    this._wormholes[id].drops.push(drop)
+  addDrop (id, dropId, drop) {
+    this._wormholes[id].drops[dropId] = drop
+    this._saveAll()
+  }
+
+  // Updates a drop
+  updateDrop (id, dropId, updates) {
+    Object.assign(this._wormholes[id].drops[dropId], updates)
     this._saveAll()
   }
 
@@ -63,10 +69,12 @@ module.exports = class Wormholes {
     return this.has(id) && (this._wormholes[id].online = false)
   }
 
+  clearDrops () {
+    Object.entries(this._wormholes).map(k => (this._wormholes[k].drops = {}))
+  }
+
   // Saves wormhole to the store
   _saveAll () {
-    console.log('Saving wormhole', this._wormholes)
     this._store.set(DB_KEY, this._wormholes)
-    console.log('Saved wormhole', this._wormholes)
   }
 }

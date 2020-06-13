@@ -32,7 +32,7 @@ export default class App extends React.Component {
     this.updateState = this.updateState.bind(this)
     this.closeModals = this.closeModals.bind(this)
     this.openModal = this.openModal.bind(this)
-    this.sendFileHandler = this.sendFileHandler.bind(this)
+    this.dropFileHandler = this.dropFileHandler.bind(this)
     this.createWormhole = this.createWormhole.bind(this)
     this.copyIdentity = this.copyIdentity.bind(this)
 
@@ -84,7 +84,7 @@ export default class App extends React.Component {
   }
 
   // Handles sending a file
-  async sendFileHandler () {
+  async dropFileHandler () {
     if (!this.state.wormholes.length)
       return notifications.show('No wormhole', 'error', true, 3000)
     if (!this.state.active)
@@ -142,7 +142,7 @@ export default class App extends React.Component {
         <Container>
           <Toolbar
             onCreateWormholeClick={() => this.openModal('createWormhole')}
-            onSendClick={this.sendFileHandler}
+            onSendClick={this.dropFileHandler}
             onCopyIdentityClick={this.copyIdentity}
           />
           <Wormholes

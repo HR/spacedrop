@@ -35,8 +35,8 @@ export default function Wormholes (props) {
                 </React.Fragment>
               }
             >
-              {hole.drops.map(drop => (
-                <Drop key={drop.name} {...drop} />
+              {Object.values(hole.drops).map(drop => (
+                <Drop key={drop.id} {...drop} />
               ))}
             </Tab>
           ))}

@@ -20,18 +20,28 @@ function sec2time (sec) {
 }
 
 export default function Drop (props) {
-  const { name, type, path, progress, total, rate, done } = props
+  const {
+    name,
+    type,
+    path,
+    percentage,
+    transferred,
+    length,
+    speed,
+    eta,
+    done
+  } = props
 
   const isDownload = type === DROP_TYPE.DOWNLOAD
-  const percent = done ? 100 : Math.round((progress / total) * 100)
-  const eta = sec2time(total / rate)
-  const progStr = filesize(progress)
-  const totalStr = filesize(total)
-  const rateStr = filesize(rate)
+  const percent = Math.round(percentage || 0)
+  const etaStr = sec2time(eta || 0)
+  const tranStr = filesize(transferred || 0)
+  const lenStr = filesize(length || 0)
+  const speedStr = filesize(speed || 0)
   const typeStr = isDownload ? 'Received' : 'Sent'
   const status = done
     ? `${typeStr} successfully`
-    : `${type} ${rateStr}/s - ${typeStr} ${progStr} of ${totalStr} (${percent}%), ${eta} left`
+    : `${type} ${speedStr}/s - ${typeStr} ${tranStr} of ${lenStr} (${percent}%), ${etaStr} left`
 
   return (
     <Row className='drop'>
@@ -48,7 +58,11 @@ export default function Drop (props) {
         </Row>
         <Row className='progressbar'>
           <Col>
-            <ProgressBar animated={!done} variant={!isDownload && 'success'} now={percent} />
+            <ProgressBar
+              animated={!done}
+              variant={!isDownload && 'success'}
+              now={percent}
+            />
           </Col>
         </Row>
       </Col>
