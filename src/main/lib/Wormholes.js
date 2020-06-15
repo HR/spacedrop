@@ -1,6 +1,8 @@
 'use strict'
 
-const DB_KEY = 'wormholes'
+const { DROP_STATUS } = require('../../consts'),
+  { isEmpty } = require('./util'),
+  DB_KEY = 'wormholes'
 
 module.exports = class Wormholes {
   constructor (store) {
@@ -35,7 +37,6 @@ module.exports = class Wormholes {
     this._wormholes[id] = {
       id,
       name,
-      online: false,
       drops: {}
     }
     this._saveAll()
@@ -49,24 +50,23 @@ module.exports = class Wormholes {
 
   // Adds a drop
   addDrop (id, dropId, drop) {
+    drop.status = DROP_STATUS.PROGRESSING
     this._wormholes[id].drops[dropId] = drop
+    this._saveAll()
+  }
+
+  // Deletes a drop
+  deleteDrop (id, dropId) {
+    delete this._wormholes[id].drops[dropId]
     this._saveAll()
   }
 
   // Updates a drop
   updateDrop (id, dropId, updates) {
+    if (!this._wormholes[id] || isEmpty(updates)) return
+    if (updates.eta === 0) updates.status = DROP_STATUS.DONE
     Object.assign(this._wormholes[id].drops[dropId], updates)
     this._saveAll()
-  }
-
-  // Set a wormhole as online
-  setOnline (id) {
-    return (this._wormholes[id].online = true)
-  }
-
-  // Set a wormhole as offline
-  setOffline (id) {
-    return this.has(id) && (this._wormholes[id].online = false)
   }
 
   clearDrops () {

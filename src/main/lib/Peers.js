@@ -18,7 +18,7 @@ const stream = require('stream'),
   { MEDIA_DIR } = require('../../config'),
   // http://viblast.com/blog/2015/2/5/webrtc-data-channel-message-size/
   DROP_CHUNK_SIZE = 16 * 1024, // (16kb)
-  DROP_STREAM_RATE = 50, // ms
+  DROP_STREAM_RATE = 100, // ms
   DROP_STAT_INTERVAL = 800 // ms
 
 const { mkdir, stat } = fs.promises
@@ -83,14 +83,9 @@ module.exports = class Peers extends EventEmitter {
     console.log('Disconnected from', userId)
   }
 
-  // Checks if given peer has been added
-  has (id) {
-    return this._peers.hasOwnProperty(id)
-  }
-
   // Checks if given peer is connected
   isConnected (id) {
-    return this._peers[id]
+    return this._peers.hasOwnProperty(id)
   }
 
   // Queues a chat message to be sent to given peer
@@ -314,7 +309,7 @@ module.exports = class Peers extends EventEmitter {
       this.emit('progress', receiverId, drop.id, progress)
     )
 
-    await pipeline(
+    const pipe = pipeline(
       fileReadStream,
       fileCipher,
       // Throttle stream (backpressure)
@@ -322,5 +317,28 @@ module.exports = class Peers extends EventEmitter {
       tracker,
       sendingStream
     )
+
+    this.on('pause-drop', dropId => {
+      if (dropId === drop.id) {
+        console.log('Pausing drop', drop)
+        fileReadStream.unpipe(fileCipher)
+        console.log('Stream paused?', fileReadStream.isPaused())
+      }
+    })
+
+    this.on('resume-drop', dropId => {
+      if (dropId === drop.id) {
+        console.log('Resuming drop', drop)
+        fileReadStream.pipe(fileCipher)
+      }
+    })
+
+    this.on('destroy-drop', dropId => {
+      if (dropId === drop.id) {
+        pipe.destroy()
+      }
+    })
+
+    await pipe
   }
 }

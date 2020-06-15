@@ -1,10 +1,12 @@
 @import '../themes';
 
 @include themify() {
-  $modal-margin: 1.4rem;
+
+  .modal-dialog {
+    margin: $side-margin;
+  }
 
   .modal-content {
-    width: 94%;
     margin: auto;
     border-radius: 0.25rem;
     padding: 5px;
@@ -26,7 +28,6 @@
 
     label {
       font-size: 0.9rem;
-      // font-weight: 300;
       text-transform: uppercase;
     }
   }
@@ -44,15 +45,6 @@
   // .modal-body textarea::placeholder,
   // .modal-body input::placeholder {
   //   color: themed('primaryForegroundColor');
-  // }
-
-  // .modal-body textarea {
-  //   font-family: monospace;
-  //   resize: none;
-  // }
-
-  // .modal-action {
-  //   margin: $modal-margin;
   // }
 
   .modal-footer {

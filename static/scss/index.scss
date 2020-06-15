@@ -31,7 +31,11 @@
     outline: none;
   }
 
-  a {
+  *::-webkit-scrollbar {
+    width: 0 !important;
+  }
+
+  a, .clickable {
     cursor: pointer;
   }
 }

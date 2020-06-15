@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Tabs, Tab } from 'react-bootstrap'
 import { classList } from '../lib/util'
 import Drop from './Drop'
@@ -36,7 +36,13 @@ export default function Wormholes (props) {
               }
             >
               {Object.values(hole.drops).map(drop => (
-                <Drop key={drop.id} {...drop} />
+                <Drop
+                  key={drop.id}
+                  onResumeClick={() => props.onResumeClick(hole.id, drop.id)}
+                  onPauseClick={() => props.onPauseClick(hole.id, drop.id)}
+                  onDeleteClick={() => props.onDeleteClick(hole.id, drop.id)}
+                  {...drop}
+                />
               ))}
             </Tab>
           ))}

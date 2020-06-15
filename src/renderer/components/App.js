@@ -149,6 +149,13 @@ export default class App extends React.Component {
             active={this.state.active}
             setActive={this.activate}
             wormholes={this.state.wormholes}
+            onResumeClick={(...args) =>
+              ipcRenderer.send('resume-drop', ...args)
+            }
+            onPauseClick={(...args) => ipcRenderer.send('pause-drop', ...args)}
+            onDeleteClick={(...args) =>
+              ipcRenderer.send('delete-drop', ...args)
+            }
           />
         </Container>
       </div>

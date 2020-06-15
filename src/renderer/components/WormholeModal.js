@@ -20,7 +20,7 @@ export default function WormholeModal (props) {
     >
       <Modal.Header closeButton>
         <Modal.Title id='contained-modal-title-vcenter'>
-          {props.type} wormhole
+          {props.type} a wormhole
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>

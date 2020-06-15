@@ -1,9 +1,8 @@
 @import '../themes';
 
 @include themify() {
-  $side-margin: 12px;
-
   .container {
+    overflow: hidden;
     padding: 0;
   }
 
@@ -13,7 +12,7 @@
 
   .nav-link:not(.active):hover {
     opacity: 0.6;
-    color: themed('primaryForegroundColor');;
+    color: themed('primaryForegroundColor');
   }
 
   .nav-link.active {
@@ -62,7 +61,16 @@
   }
 
   .wormholes {
-    height: 100%;
+    nav {
+      flex-wrap: unset;
+      overflow-x: auto !important;
+      white-space: nowrap;
+    }
+
+    .tab-content {
+      overflow-y: auto;
+      height: 69vh;
+    }
 
     .noholes {
       margin: auto;
@@ -105,9 +113,25 @@
         background: themed('secondaryBackgroundColor');
       }
 
-      .name {
-        font-weight: bold;
-        font-size: 18px;
+      .name-row {
+        .name {
+          font-weight: bold;
+          font-size: 18px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex-grow: 3;
+        }
+
+        i {
+          margin-left: 15px;
+          cursor: pointer;
+        }
+
+        i:active,
+        i:focus {
+          opacity: 0.6;
+        }
       }
 
       .status {
@@ -116,6 +140,10 @@
         font-size: 13px;
         font-weight: 300;
       }
+    }
+
+    .drop:first-child {
+      margin-top: 0px;
     }
   }
 }

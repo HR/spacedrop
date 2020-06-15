@@ -7,5 +7,10 @@ module.exports = {
   DROP_TYPE: {
     DOWNLOAD: '↓',
     UPLOAD: '↑'
+  },
+  DROP_STATUS: {
+    DONE: 'done',
+    PAUSED: 'paused',
+    PROGRESSING: 'progressing'
   }
 }
