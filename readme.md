@@ -15,8 +15,12 @@
     </a>
 </p>
 
+> Spacedrop > Airdrop
+
 A peer-to-peer end-to-end encrypted file sharing desktop app. Like _Airdrop_
 but works over the internet rather than bluetooth/Wi-Fi, hence, _Spacedrop_.
+
+
 Implements the secure [signal
 protocol](https://signal.org/docs/specifications/doubleratchet/) to enable the
 end-to-end encryption of file transfers with authentication.
