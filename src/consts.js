@@ -11,6 +11,7 @@ module.exports = {
   DROP_STATUS: {
     DONE: 'done',
     PAUSED: 'paused',
-    PROGRESSING: 'progressing'
+    PENDING: 'pending',
+    FAILED: 'failed'
   }
 }

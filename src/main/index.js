@@ -4,7 +4,7 @@
  *****************************/
 const { app, Menu, ipcMain, screen } = require('electron'),
   { basename } = require('path'),
-  { is } = require('electron-util'),
+  { is, openNewGitHubIssue, debugInfo } = require('electron-util'),
   debug = require('electron-debug'),
   unhandled = require('electron-unhandled'),
   contextMenu = require('electron-context-menu'),
@@ -18,13 +18,22 @@ const { app, Menu, ipcMain, screen } = require('electron'),
   menu = require('./menu'),
   windows = require('./windows')
 
-unhandled()
+unhandled({
+  reportButton: error => {
+    openNewGitHubIssue({
+      user: 'hr',
+      repo: 'spacedrop',
+      body: `\`\`\`\n${error.stack}\n\`\`\`\n\n---\n\n${debugInfo()}`
+    })
+  }
+})
 debug()
 contextMenu()
 
 app.setAppUserModelId(packageJson.build.appId)
 let db = 'launch',
-  secondWin = false
+  secondWin = false,
+  wormholes
 
 if (!is.development) {
   // Prevent multiple instances of the app
@@ -49,6 +58,11 @@ app.on('window-all-closed', () => {
   }
 })
 
+app.on('will-quit', () => {
+  console.log('Closing Spacedrop...')
+  wormholes.pauseDrops()
+})
+
 app.on('activate', windows.main.activate)
 
 /**
@@ -61,10 +75,11 @@ app.on('activate', windows.main.activate)
   Menu.setApplicationMenu(menu)
 
   const store = new Store({ name: db })
-  const wormholes = new Wormholes(store)
   const crypto = new Crypto(store)
   const server = new Server()
   const peers = new Peers(server, crypto)
+  wormholes = new Wormholes(store)
+
   /**
    * App events
    *****************************/
@@ -72,6 +87,13 @@ app.on('activate', windows.main.activate)
     wormholes.clearDrops()
     updateState()
   })
+
+  /**
+   * Server events
+   *****************************/
+  server.on('connect', openWormholes)
+  server.on('disconnect', () => notifyError('Disconnected from the Mothership'))
+  server.on('error', () => notifyError('Failed to connect to the Mothership'))
 
   /**
    * IPC events
@@ -82,18 +104,8 @@ app.on('activate', windows.main.activate)
   ipcMain.on('activate-wormhole', (e, id) => store.set('state.lastActive', id))
   // When a file is sent by user
   ipcMain.on('drop', dropHandler)
-  ipcMain.on('resume-drop', (e, holeId, dropId) => {
-    console.log('ipc: Resuming drop', dropId)
-    peers.emit('resume-drop', dropId)
-    wormholes.updateDrop(holeId, dropId, { status: DROP_STATUS.PROGRESSING })
-    updateState()
-  })
-  ipcMain.on('pause-drop', (e, holeId, dropId) => {
-    console.log('ipc: Pausing drop', dropId)
-    peers.emit('pause-drop', dropId)
-    wormholes.updateDrop(holeId, dropId, { status: DROP_STATUS.PAUSED })
-    updateState()
-  })
+  ipcMain.on('resume-drop', resumeDropHandler)
+  ipcMain.on('pause-drop', pauseDropHandler)
   ipcMain.on('delete-drop', deleteDropHandler)
 
   /**
@@ -109,6 +121,10 @@ app.on('activate', windows.main.activate)
   peers.on('drop', peerDropHandler)
   // When a new progress update for a drop is received
   peers.on('progress', peerDropProgressHandler)
+  // Failed to send a drop
+  peers.on('send-error', peerDropSendFailHandler)
+  // Failed to receive a drop
+  peers.on('receive-error', peerDropReceiveFailHandler)
 
   /**
    * Init
@@ -134,32 +150,29 @@ app.on('activate', windows.main.activate)
   updateState(true)
   ipcMain.on('do-update-state', () => updateState(true))
 
-  try {
-    // Connect to the signal server
-    const authRequest = crypto.generateAuthRequest()
-    await server.connect(identity.publicKey, authRequest)
-    console.info('Connected to server')
-  } catch (error) {
-    console.error(error)
-    // Notify user of it
-    windows.main.send(
-      'notify',
-      'Failed to connect to the server',
-      'error',
-      true,
-      4000
-    )
-  }
-
-  // Establish connections with all chat peers
-  wormholes
-    .getList()
-    .filter(wormhole => !peers.isConnected(wormhole.id)) // Ignore ones already connecting to
-    .forEach(wormhole => peers.connect(wormhole.id))
+  // Establish connection with the Mothership (signalling server)
+  connectToMothership()
 
   /**
    * Handlers
    *****************************/
+
+  function notifyError (message) {
+    windows.main.send('notify', message, 'error', true, 4000)
+  }
+
+  async function connectToMothership () {
+    const authRequest = crypto.generateAuthRequest()
+    server.connect(identity.publicKey, authRequest)
+    console.info('Connected to server')
+  }
+
+  function openWormholes () {
+    wormholes
+      .getList()
+      .filter(wormhole => !peers.isConnected(wormhole.id)) // Ignore ones already connecting to
+      .forEach(wormhole => peers.connect(wormhole.id))
+  }
 
   /* IPC handlers */
   function updateState (init = false, reset = false) {
@@ -184,7 +197,7 @@ app.on('activate', windows.main.activate)
     windows.main.send('update-state', state, reset)
   }
 
-  async function createWormholeHandler (event, id, name) {
+  function createWormholeHandler (event, id, name) {
     wormholes.add(id, name)
     updateState(false, true)
     // Establish wormhole
@@ -214,6 +227,36 @@ app.on('activate', windows.main.activate)
     peers.send(drop.id, id, drop, filePath)
   }
 
+  function peerDropSendFailHandler (dropId) {
+    const wId = wormholes.findIdByDropId(dropId)
+    const drop = wormholes.updateDrop(wId, dropId, {
+      status: DROP_STATUS.FAILED
+    })
+    notifyError(`Failed to send ${drop.name} :(`)
+    updateState()
+  }
+
+  function peerDropReceiveFailHandler (dropId) {
+    const wId = wormholes.findIdByDropId(dropId)
+    const drop = wormholes.updateDrop(wId, dropId, {
+      status: DROP_STATUS.FAILED
+    })
+    notifyError(`Failed to receive ${drop.name} :(`)
+    updateState()
+  }
+
+  function pauseDropHandler (e, holeId, dropId) {
+    peers.emit('pause-drop', dropId)
+    wormholes.updateDrop(holeId, dropId, { status: DROP_STATUS.PAUSED })
+    updateState()
+  }
+
+  function resumeDropHandler (e, holeId, dropId) {
+    if (!peers.isConnected(holeId)) peers.emit('resume-drop', dropId)
+    wormholes.updateDrop(holeId, dropId, { status: DROP_STATUS.PENDING })
+    updateState()
+  }
+
   function deleteDropHandler (e, holeId, dropId) {
     console.log('Deleting', holeId, dropId)
     peers.emit('destroy-drop')
@@ -222,7 +265,7 @@ app.on('activate', windows.main.activate)
   }
 
   /* Peers handlers */
-  async function peerConnectHandler (userId) {
+  function peerConnectHandler (userId) {
     console.log('Connected with', userId)
 
     // New wormhole
@@ -233,7 +276,7 @@ app.on('activate', windows.main.activate)
     // Update UI
     updateState()
   }
-  async function peerDisconnectHandler (userId) {
+  function peerDisconnectHandler (userId) {
     console.log('Disconnected with', userId)
     // Update UI
     updateState()
@@ -242,7 +285,7 @@ app.on('activate', windows.main.activate)
     console.log('Error connecting with peer', userId)
     console.error(err)
   }
-  async function peerDropHandler (senderId, drop) {
+  function peerDropHandler (senderId, drop) {
     console.log('Got drop', drop)
     wormholes.addDrop(senderId, drop.id, {
       type: DROP_TYPE.DOWNLOAD,

@@ -61,7 +61,7 @@ export default function Drop (props) {
         <i className='ion-ios-play' onClick={onResumeClick} />
       )
       break
-    case DROP_STATUS.PROGRESSING:
+    case DROP_STATUS.PENDING:
       statusStr =
         `${type} ${speedStr}/s ` +
         `- ${typeStr} ${tranStr} of ${lenStr} (${percent}%), ${etaStr} left`

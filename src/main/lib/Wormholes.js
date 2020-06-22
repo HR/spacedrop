@@ -48,9 +48,14 @@ module.exports = class Wormholes {
     this._saveAll()
   }
 
+  // Gets a drop
+  getDrop (id, dropId) {
+    return this._wormholes[id].drops[dropId]
+  }
+
   // Adds a drop
   addDrop (id, dropId, drop) {
-    drop.status = DROP_STATUS.PROGRESSING
+    drop.status = DROP_STATUS.PENDING
     this._wormholes[id].drops[dropId] = drop
     this._saveAll()
   }
@@ -61,11 +66,37 @@ module.exports = class Wormholes {
     this._saveAll()
   }
 
+  // Find the wormhole id of a drop with its id
+  findIdByDropId (dropId) {
+    return Object.entries(this._wormholes).find(w =>
+      Object.entries(w.drops).includes(dropId)
+    )
+  }
+
   // Updates a drop
   updateDrop (id, dropId, updates) {
     if (!this._wormholes[id] || isEmpty(updates)) return
     if (updates.eta === 0) updates.status = DROP_STATUS.DONE
-    Object.assign(this._wormholes[id].drops[dropId], updates)
+    const drop = Object.assign(this._wormholes[id].drops[dropId], updates)
+    this._saveAll()
+    return drop 
+  }
+
+  // Pause all pending drops
+  pauseDrops () {
+    for (var w in this._wormholes) {
+      if (!this._wormholes.hasOwnProperty(w)) continue
+      for (var d in this._wormholes[w].drops) {
+        if (
+          !this._wormholes[w].drops.hasOwnProperty(d) ||
+          this._wormholes[w].drops[d].status !== DROP_STATUS.PENDING
+        )
+          continue
+
+        this._wormholes[w].drops[d].status = DROP_STATUS.PAUSED
+      }
+    }
+    console.log('Pausing drops', JSON.stringify(this._wormholes))
     this._saveAll()
   }
 

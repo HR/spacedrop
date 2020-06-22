@@ -30,25 +30,25 @@ module.exports = class Server extends EventEmitter {
     Server.instance = this
   }
 
-// Connects to signal server
-connect (userId, authRequest) {
-  this._id = userId
-  // Build ws uri with authentication querystring data
-  const wsAuthURI = WS_URI + '?' + encode(authRequest)
-  return new Promise((resolve, reject) => {
+  // Connects to signal server
+  connect (userId, authRequest) {
+    this._id = userId
+    // Build ws uri with authentication querystring data
+    const wsAuthURI = WS_URI + '?' + encode(authRequest)
+
     this._ws = new WebSocket(wsAuthURI)
     // Add event listeners
     this._ws.on('message', this._emit)
-    this._ws.on('open', resolve)
-    this._ws.on('error', reject)
-  })
-}
+    this._ws.on('open', () => this.emit('connect'))
+    this._ws.on('close', () => this.emit('disconnect'))
+    this._ws.on('error', () => this.emit('error'))
+  }
 
   // Sends signal to a peer (via server)
   send (type, extras = {}, cb) {
     const msg = JSON.stringify({ type, senderId: this._id, ...extras })
     if (!cb) {
-      return new Promise((resolve) => this._ws.send(msg, null, resolve))
+      return new Promise(resolve => this._ws.send(msg, null, resolve))
     }
     this._ws.send(msg, null, cb)
   }
