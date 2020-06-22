@@ -18,7 +18,7 @@
   }
   
   button:active, button:hover, button:focus  {
-    background: themed('primaryColor');
+    background: themed('primaryColor') !important;
     border: none;
     box-shadow: none !important;
   }
@@ -28,6 +28,6 @@
   }
 
   button:disabled {
-    background: themed('secondaryBackgroundColor');
+    background: themed('primaryColor');
   }
 }
