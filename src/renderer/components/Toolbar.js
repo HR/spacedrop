@@ -1,5 +1,6 @@
 import React from 'react'
 import { Row, Col, Button } from 'react-bootstrap'
+import { classList } from '../lib/util'
 
 export default function Toolbar (props) {
   return (
@@ -9,15 +10,15 @@ export default function Toolbar (props) {
       </Row>
       <Row className='actions'>
         <Col>
-          <Button variant='dark'>
-            <i className='ion-ios-send' onClick={props.onSendClick} />
+          <Button
+            variant='dark'
+            onClick={props.onSendClick}
+            disabled={props.sendDisabled}
+          >
+            <i className='ion-ios-send' />
           </Button>
-          <Button variant='dark'>
-            <img
-              src='../../../static/spacedrop.svg'
-              className='icon'
-              onClick={props.onCreateWormholeClick}
-            />
+          <Button variant='dark' onClick={props.onCreateWormholeClick}>
+            <img src='../../../static/spacedrop.svg' className='icon' />
             {/* <i className='ion-ios-add-circle'  /> */}
           </Button>
         </Col>
@@ -28,10 +29,13 @@ export default function Toolbar (props) {
           <Button variant='dark'>
             <i className='ion-ios-close-circle' onClick={props.onCancelClick} />
           </Button> */}
-          <Button variant='dark'>
-            <i
-              className='ion-ios-contact'
-              onClick={props.onCopyIdentityClick}
+          <Button variant='dark' onClick={props.onCopyIdentityClick} className='profile'>
+            <i className='ion-ios-contact' />
+            <div
+              className={classList({
+                status: true,
+                online: props.online
+              })}
             />
           </Button>
         </Col>

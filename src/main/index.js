@@ -91,9 +91,18 @@ app.on('activate', windows.main.activate)
   /**
    * Server events
    *****************************/
-  server.on('connect', openWormholes)
-  server.on('disconnect', () => notifyError('Disconnected from the Mothership'))
-  server.on('error', () => notifyError('Failed to connect to the Mothership'))
+  server.on('connect', () => {
+    openWormholes()
+    updateState()
+  })
+  server.on('disconnect', () => {
+    notifyError('Disconnected from the Mothership')
+    updateState()
+  })
+  server.on('error', () => {
+    notifyError('Failed to connect to the Mothership')
+    updateState()
+  })
 
   /**
    * IPC events
@@ -177,12 +186,14 @@ app.on('activate', windows.main.activate)
   /* IPC handlers */
   function updateState (init = false, reset = false) {
     let state = {
+      online: server.isConnected(),
       wormholes: wormholes
         .getList()
         .map(w => Object.assign(w, { online: peers.isConnected(w.id) }))
     }
     let lastActive = store.get('state.lastActive', false)
 
+    console.log(state)
     if (init) {
       state.identity = identity.publicKey
       state.active = lastActive
@@ -205,6 +216,7 @@ app.on('activate', windows.main.activate)
   }
 
   async function dropHandler (event, id, filePath) {
+    if (!peers.isConnected(id)) return notifyError('Wormhole closed (offline)')
     // Construct message
     let drop = {
       name: basename(filePath),
@@ -252,7 +264,9 @@ app.on('activate', windows.main.activate)
   }
 
   function resumeDropHandler (e, holeId, dropId) {
-    if (!peers.isConnected(holeId)) peers.emit('resume-drop', dropId)
+    if (!peers.isConnected(holeId))
+      return notifyError('Wormhole closed (offline)')
+    peers.emit('resume-drop', dropId)
     wormholes.updateDrop(holeId, dropId, { status: DROP_STATUS.PENDING })
     updateState()
   }

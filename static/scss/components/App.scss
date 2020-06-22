@@ -31,6 +31,26 @@
       vertical-align: text-top;
     }
 
+    .profile {
+      position: relative;
+
+      .status {
+        position: absolute;
+        vertical-align: middle;
+        margin-left: 8px;
+        top: -2px;
+        right: -2px;
+        width: 8px;
+        height: 8px;
+        border-radius: 100%;
+        background-color: themed('dangerColor');
+      }
+
+      .status.online {
+        background-color: themed('onlineColor');
+      }
+    }
+
     .actions {
       padding: 0px;
 

@@ -21,6 +21,7 @@ export default class App extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
+      online: false,
       identity: '',
       wormholes: [],
       active: '',
@@ -64,8 +65,8 @@ export default class App extends React.Component {
       Object.assign(newState, clone(initModalsState))
       notifications && notifications.clear()
     }
-    console.log(newState, resetState)
-    this.setState(newState)
+    console.log('updateState', newState, resetState)
+    this.setState(newState, () => console.log('Updated state', this.state))
   }
 
   // Closes all the modals
@@ -131,6 +132,9 @@ export default class App extends React.Component {
 
   // Render the App UI
   render () {
+    const activeWormholeOnline = Object.values(this.state.wormholes).find(
+      w => w.id === this.state.active && w.online === true
+    )
     return (
       <div className='App'>
         <WormholeModal
@@ -141,6 +145,8 @@ export default class App extends React.Component {
         />
         <Container>
           <Toolbar
+            online={this.state.online}
+            sendDisabled={!activeWormholeOnline}
             onCreateWormholeClick={() => this.openModal('createWormhole')}
             onSendClick={this.dropFileHandler}
             onCopyIdentityClick={this.copyIdentity}

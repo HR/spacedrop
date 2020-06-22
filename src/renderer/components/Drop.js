@@ -39,9 +39,6 @@ export default function Drop (props) {
     status
   } = props
 
-  let statusStr,
-    action,
-    isDone = false
   const isDownload = type === DROP_TYPE.DOWNLOAD
   const percent = Math.round(percentage || 0)
   const etaStr = sec2time(eta || 0)
@@ -49,14 +46,18 @@ export default function Drop (props) {
   const lenStr = filesize(length || 0)
   const speedStr = filesize(speed || 0)
   const typeStr = isDownload ? 'Received' : 'Sent'
+  let statusStr,
+    action,
+    progressVariant = !isDownload && 'success',
+    isDone = false
 
   switch (status) {
     case DROP_STATUS.DONE:
-      statusStr = `${typeStr} successfully`
+      statusStr = `${type} Finished`
       isDone = true
       break
     case DROP_STATUS.PAUSED:
-      statusStr = `${typeStr} paused`
+      statusStr = `${type} Paused`
       action = !isDownload && (
         <i className='ion-ios-play' onClick={onResumeClick} />
       )
@@ -68,6 +69,11 @@ export default function Drop (props) {
       action = !isDownload && (
         <i className='ion-ios-pause' onClick={onPauseClick} />
       )
+      break
+    case DROP_STATUS.FAILED:
+      statusStr = `${type} Failed`
+      isDone = true
+      progressVariant = 'danger'
       break
     default:
       throw new Error('Unknown drop status')
@@ -96,7 +102,7 @@ export default function Drop (props) {
           <Col>
             <ProgressBar
               animated={!isDone}
-              variant={!isDownload && 'success'}
+              variant={progressVariant}
               now={percent}
             />
           </Col>

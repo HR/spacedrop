@@ -21,6 +21,7 @@ module.exports = class Server extends EventEmitter {
 
     this._id = null
     this._ws = null
+    this._connected = false
 
     // Bindings
     this.connect = this.connect.bind(this)
@@ -28,6 +29,10 @@ module.exports = class Server extends EventEmitter {
     this.send = this.send.bind(this)
 
     Server.instance = this
+  }
+
+  isConnected () {
+    return this._connected
   }
 
   // Connects to signal server
@@ -39,8 +44,14 @@ module.exports = class Server extends EventEmitter {
     this._ws = new WebSocket(wsAuthURI)
     // Add event listeners
     this._ws.on('message', this._emit)
-    this._ws.on('open', () => this.emit('connect'))
-    this._ws.on('close', () => this.emit('disconnect'))
+    this._ws.on('open', () => {
+      this._connected = true
+      this.emit('connect')
+    })
+    this._ws.on('close', () => {
+      this._connected = false
+      this.emit('disconnect')
+    })
     this._ws.on('error', () => this.emit('error'))
   }
 
