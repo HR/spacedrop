@@ -1,7 +1,6 @@
 @import '../themes';
 
 @include themify() {
-
   .modal-dialog {
     margin: $side-margin;
   }
@@ -29,6 +28,10 @@
     label {
       font-size: 0.9rem;
       text-transform: uppercase;
+    }
+
+    input:disabled {
+      filter: brightness(60%);
     }
   }
 

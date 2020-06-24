@@ -9,9 +9,9 @@ const path = require('path'),
 
 const CONFIG = {
   LOAD_URL: `file://${path.join(__dirname, '../app/index.html')}`,
-  WS_URI: 'ws://cipher.com',
+  WS_URI: 'wss://spacedrop.xyz',
   DB_PATH: path.join(app.getPath('userData'), 'spacedrop.db'),
-  MEDIA_DIR: path.join(app.getPath('userData'), 'media'),
+  DROPS_DIR: path.join(app.getPath('userData'), 'drops'),
   MAIN_WIN_WIDTH: 875,
   MAIN_WIN_HEIGHT: 500
 }

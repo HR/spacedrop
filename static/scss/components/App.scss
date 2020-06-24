@@ -6,21 +6,6 @@
     padding: 0;
   }
 
-  nav {
-    margin: $side-margin;
-  }
-
-  .nav-link:not(.active):hover {
-    opacity: 0.6;
-    color: themed('primaryForegroundColor');
-  }
-
-  .nav-link.active {
-    background-color: themed('primaryColor');
-    color: themed('primaryForegroundColor');
-    font-weight: bold;
-  }
-
   .toolbar {
     padding: 10px $side-margin $side-margin $side-margin;
 
@@ -81,10 +66,24 @@
   }
 
   .wormholes {
-    nav {
+    .nav {
       flex-wrap: unset;
       overflow-x: auto !important;
       white-space: nowrap;
+      margin: $side-margin;
+    }
+
+    .nav-link {
+      &:not(.active):hover {
+        opacity: 0.6;
+        color: themed('primaryForegroundColor');
+      }
+
+      &.active {
+        background-color: themed('primaryColor');
+        color: themed('primaryForegroundColor');
+        font-weight: bold;
+      }
     }
 
     .tab-content {

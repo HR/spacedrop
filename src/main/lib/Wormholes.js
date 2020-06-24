@@ -10,12 +10,12 @@ module.exports = class Wormholes {
     this._wormholes = this._store.get(DB_KEY, {})
   }
 
-  // Gets the wormhole
+  // Wormhole ops
+
   getAll () {
     return this._wormholes
   }
 
-  // Gets the wormhole
   getList () {
     return Object.values(this._wormholes)
   }
@@ -27,12 +27,14 @@ module.exports = class Wormholes {
     return (online && online.id) || arr[0].id
   }
 
-  // Checks if a wormhole exists
+  get (id) {
+    return this._wormholes[id]
+  }
+
   has (id) {
     return !!this._wormholes[id]
   }
 
-  // Adds a wormhole
   add (id, name) {
     this._wormholes[id] = {
       id,
@@ -42,10 +44,18 @@ module.exports = class Wormholes {
     this._saveAll()
   }
 
-  // Deletes a wormhole
+  update (id, state) {
+    Object.assign(this._wormholes[id], state)
+    this._saveAll()
+  }
+
   delete (id) {
     delete this._wormholes[id]
     this._saveAll()
+  }
+
+  getDropList (id) {
+    return Object.entries(this._wormholes[id].drops)
   }
 
   // Gets a drop
@@ -79,7 +89,7 @@ module.exports = class Wormholes {
     if (updates.eta === 0) updates.status = DROP_STATUS.DONE
     const drop = Object.assign(this._wormholes[id].drops[dropId], updates)
     this._saveAll()
-    return drop 
+    return drop
   }
 
   // Pause all pending drops

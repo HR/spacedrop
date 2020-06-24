@@ -21,7 +21,7 @@ module.exports = class Server extends EventEmitter {
 
     this._id = null
     this._ws = null
-    this._connected = false
+    this._connected = null
 
     // Bindings
     this.connect = this.connect.bind(this)
@@ -49,10 +49,10 @@ module.exports = class Server extends EventEmitter {
       this.emit('connect')
     })
     this._ws.on('close', () => {
+      this.emit('disconnect', this._connected)
       this._connected = false
-      this.emit('disconnect')
     })
-    this._ws.on('error', () => this.emit('error'))
+    this._ws.on('error', err => this.emit('error', err))
   }
 
   // Sends signal to a peer (via server)

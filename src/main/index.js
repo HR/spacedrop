@@ -17,6 +17,8 @@ const { app, Menu, ipcMain, screen } = require('electron'),
   Wormholes = require('./lib/Wormholes'),
   menu = require('./menu'),
   windows = require('./windows')
+let db = 'launch',
+  secondWin = false
 
 unhandled({
   reportButton: error => {
@@ -28,12 +30,7 @@ unhandled({
   }
 })
 debug()
-contextMenu()
-
 app.setAppUserModelId(packageJson.build.appId)
-let db = 'launch',
-  secondWin = false,
-  wormholes
 
 if (!is.development) {
   // Prevent multiple instances of the app
@@ -58,11 +55,6 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('will-quit', () => {
-  console.log('Closing Spacedrop...')
-  wormholes.pauseDrops()
-})
-
 app.on('activate', windows.main.activate)
 
 /**
@@ -78,11 +70,18 @@ app.on('activate', windows.main.activate)
   const crypto = new Crypto(store)
   const server = new Server()
   const peers = new Peers(server, crypto)
-  wormholes = new Wormholes(store)
+  const wormholes = new Wormholes(store)
+
+  initContextMenu()
 
   /**
    * App events
    *****************************/
+  app.on('will-quit', () => {
+    console.log('Closing Spacedrop...')
+    wormholes.pauseDrops()
+  })
+
   app.on('delete-drops', () => {
     wormholes.clearDrops()
     updateState()
@@ -95,13 +94,17 @@ app.on('activate', windows.main.activate)
     openWormholes()
     updateState()
   })
-  server.on('disconnect', () => {
-    notifyError('Disconnected from the Mothership')
+  server.on('disconnect', connected => {
+    if (connected === null) {
+      notifyError('Failed to connect to the Mothership')
+    } else {
+      notifyError('Disconnected from the Mothership')
+    }
     updateState()
   })
-  server.on('error', () => {
-    notifyError('Failed to connect to the Mothership')
-    updateState()
+  server.on('error', err => {
+    if (err.code !== 'ECONNREFUSED')
+      notifyError(`Connection error: ${err.message}`)
   })
 
   /**
@@ -109,6 +112,7 @@ app.on('activate', windows.main.activate)
    *****************************/
   // When a wormhole is created by user
   ipcMain.on('create-wormhole', createWormholeHandler)
+  ipcMain.on('edit-wormhole', editWormholeHandler)
   // When a wormhole is selected by user
   ipcMain.on('activate-wormhole', (e, id) => store.set('state.lastActive', id))
   // When a file is sent by user
@@ -155,9 +159,21 @@ app.on('activate', windows.main.activate)
     )
   }
 
+  let lastActive = store.get('state.lastActive', false)
+
+  if (!lastActive) {
+    lastActive = wormholes.getActive()
+    store.set('state.lastActive', lastActive)
+  }
+
   // Populate UI
-  updateState(true)
-  ipcMain.on('do-update-state', () => updateState(true))
+  updateState({ identity: identity.publicKey, active: lastActive })
+  ipcMain.on('do-update-state', () =>
+    updateState({
+      identity: identity.publicKey,
+      active: store.get('state.lastActive', '')
+    })
+  )
 
   // Establish connection with the Mothership (signalling server)
   connectToMothership()
@@ -165,6 +181,46 @@ app.on('activate', windows.main.activate)
   /**
    * Handlers
    *****************************/
+
+  function initContextMenu () {
+    contextMenu({
+      menu: actions => [],
+      prepend: (defaultActions, params, browserWindow) => {
+        console.log('Params:', params)
+        const wormholeId =
+          params.linkURL.includes('#wormhole') &&
+          params.linkURL.split('#').pop()
+        return [
+          {
+            label: 'Edit wormhole',
+            // Only show it when right-clicking text
+            visible: wormholeId,
+            click: () =>
+              windows.main.send(
+                'open-modal',
+                'editWormhole',
+                wormholes.get(wormholeId)
+              )
+          },
+          {
+            label: 'Delete wormhole',
+            // Only show it when right-clicking text
+            visible: wormholeId,
+            click: () => {
+              // Cancel all pending drops
+              wormholes
+                .getDropList(wormholeId)
+                .filter(drop => drop.status === DROP_STATUS.PENDING)
+                .forEach(drop => peers.emit('destroy-drop', drop.id))
+              wormholes.delete(wormholeId)
+              updateState()
+              console.log('Deleted wormhole', wormholeId)
+            }
+          }
+        ]
+      }
+    })
+  }
 
   function notifyError (message) {
     windows.main.send('notify', message, 'error', true, 4000)
@@ -184,35 +240,27 @@ app.on('activate', windows.main.activate)
   }
 
   /* IPC handlers */
-  function updateState (init = false, reset = false) {
+  function updateState (extraState, reset = false) {
     let state = {
-      online: server.isConnected(),
       wormholes: wormholes
         .getList()
         .map(w => Object.assign(w, { online: peers.isConnected(w.id) }))
     }
-    let lastActive = store.get('state.lastActive', false)
-
+    if (extraState) Object.assign(state, extraState)
     console.log(state)
-    if (init) {
-      state.identity = identity.publicKey
-      state.active = lastActive
-    }
-
-    if (!lastActive) {
-      lastActive = wormholes.getActive()
-      store.set('state.lastActive', lastActive)
-      state.active = lastActive
-    }
-
     windows.main.send('update-state', state, reset)
   }
 
   function createWormholeHandler (event, id, name) {
     wormholes.add(id, name)
-    updateState(false, true)
-    // Establish wormhole
+    updateState(null, true)
+    // Open wormhole
     peers.connect(id)
+  }
+
+  function editWormholeHandler (event, id, name) {
+    wormholes.update(id, { name })
+    updateState(null, true)
   }
 
   async function dropHandler (event, id, filePath) {
@@ -273,7 +321,7 @@ app.on('activate', windows.main.activate)
 
   function deleteDropHandler (e, holeId, dropId) {
     console.log('Deleting', holeId, dropId)
-    peers.emit('destroy-drop')
+    peers.emit('destroy-drop', dropId)
     wormholes.deleteDrop(holeId, dropId)
     updateState()
   }

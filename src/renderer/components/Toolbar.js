@@ -14,10 +14,15 @@ export default function Toolbar (props) {
             variant='dark'
             onClick={props.onSendClick}
             disabled={props.sendDisabled}
+            title='Send file'
           >
             <i className='ion-ios-send' />
           </Button>
-          <Button variant='dark' onClick={props.onCreateWormholeClick}>
+          <Button
+            variant='dark'
+            onClick={props.onCreateWormholeClick}
+            title='Create a wormhole'
+          >
             <img src='../../../static/spacedrop.svg' className='icon' />
             {/* <i className='ion-ios-add-circle'  /> */}
           </Button>
@@ -29,7 +34,12 @@ export default function Toolbar (props) {
           <Button variant='dark'>
             <i className='ion-ios-close-circle' onClick={props.onCancelClick} />
           </Button> */}
-          <Button variant='dark' onClick={props.onCopyIdentityClick} className='profile'>
+          <Button
+            variant='dark'
+            onClick={props.onCopyIdentityClick}
+            className='profile'
+            title={`Spacedrop ID (${props.online ? 'online' : 'offline'})`}
+          >
             <i className='ion-ios-contact' />
             <div
               className={classList({

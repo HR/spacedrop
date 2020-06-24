@@ -59,7 +59,11 @@ export default function Drop (props) {
     case DROP_STATUS.PAUSED:
       statusStr = `${type} Paused`
       action = !isDownload && (
-        <i className='ion-ios-play' onClick={onResumeClick} />
+        <i
+          className='ion-ios-play'
+          title={`Resume ${name}`}
+          onClick={onResumeClick}
+        />
       )
       break
     case DROP_STATUS.PENDING:
@@ -67,7 +71,11 @@ export default function Drop (props) {
         `${type} ${speedStr}/s ` +
         `- ${typeStr} ${tranStr} of ${lenStr} (${percent}%), ${etaStr} left`
       action = !isDownload && (
-        <i className='ion-ios-pause' onClick={onPauseClick} />
+        <i
+          className='ion-ios-pause'
+          title={`Pause ${name}`}
+          onClick={onPauseClick}
+        />
       )
       break
     case DROP_STATUS.FAILED:
@@ -83,16 +91,25 @@ export default function Drop (props) {
     <Row className='drop'>
       <Col className='info'>
         <Row className='name-row'>
-          <Col className='name' onClick={() => shell.openPath(path)}>
+          <Col
+            className='name clickable'
+            title={`Open ${name}`}
+            onClick={() => shell.openPath(path)}
+          >
             {name}
           </Col>
           <Col className='text-right actions'>
             <i
               className='ion-ios-search'
               onClick={() => shell.showItemInFolder(path)}
+              title={`Show ${name} in file manager`}
             />
             {action}
-            <i className='ion-ios-close-circle' onClick={onDeleteClick} />
+            <i
+              className='ion-ios-close-circle'
+              title={`Remove ${name} drop`}
+              onClick={onDeleteClick}
+            />
           </Col>
         </Row>
         <Row className='status'>
@@ -104,6 +121,7 @@ export default function Drop (props) {
               animated={!isDone}
               variant={progressVariant}
               now={percent}
+              title={`${percent}% completed`}
             />
           </Col>
         </Row>

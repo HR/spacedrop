@@ -15,7 +15,7 @@ const stream = require('stream'),
   progress = require('progress-stream'),
   Peer = require('./simple-peer'),
   Queue = require('./Queue'),
-  { MEDIA_DIR } = require('../../config'),
+  { DROPS_DIR } = require('../../config'),
   // http://viblast.com/blog/2015/2/5/webrtc-data-channel-message-size/
   DROP_CHUNK_SIZE = 16 * 1024, // (16kb)
   DROP_STREAM_RATE = 100, // ms
@@ -238,10 +238,10 @@ module.exports = class Peers extends EventEmitter {
     let [drop, fileDecipher] = await this._crypto.decrypt(userId, encDrop)
     // Ignore if validation failed
     if (!drop) return
-    const mediaDir = path.join(MEDIA_DIR, userId)
+    const dropDir = path.join(DROPS_DIR, userId)
     // Recursively make media directory
-    await mkdir(mediaDir, { recursive: true })
-    const filePath = path.join(mediaDir, drop.name)
+    await mkdir(dropDir, { recursive: true })
+    const filePath = path.join(dropDir, drop.name)
     console.log('Writing to', filePath)
 
     this.emit('drop', userId, { path: filePath, ...drop })

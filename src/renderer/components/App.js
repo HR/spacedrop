@@ -13,7 +13,8 @@ const { dialog } = remote
 let notifications = null
 // Initial modal state used to reset modals
 const initModalsState = {
-  createWormhole: false
+  createWormhole: false,
+  editWormhole: false
 }
 // Root component
 export default class App extends React.Component {
@@ -35,11 +36,11 @@ export default class App extends React.Component {
     this.openModal = this.openModal.bind(this)
     this.dropFileHandler = this.dropFileHandler.bind(this)
     this.createWormhole = this.createWormhole.bind(this)
+    this.editWormhole = this.editWormhole.bind(this)
     this.copyIdentity = this.copyIdentity.bind(this)
 
     // Add event listeners
-    ipcRenderer.on('open-modal', (event, modal) => this.openModal(modal))
-    ipcRenderer.on('modal-error', (event, err) => this.showModalError(err))
+    ipcRenderer.on('open-modal', (event, ...args) => this.openModal(...args))
     ipcRenderer.on('update-state', this.updateState)
   }
 
@@ -77,10 +78,10 @@ export default class App extends React.Component {
   }
 
   // Shows the specified modal
-  openModal (name) {
+  openModal (name, state) {
     console.log('Opening modal ' + name)
     let newModalState = clone(initModalsState)
-    newModalState[name] = true
+    newModalState[name] = state ? state : true
     this.setState(newModalState)
   }
 
@@ -90,8 +91,6 @@ export default class App extends React.Component {
       return notifications.show('No wormhole', 'error', true, 3000)
     if (!this.state.active)
       return notifications.show('No wormhole selected', 'error', true, 3000)
-    // if (!this.state.active)
-    //   return notifications.show('Wormhole offline', 'error', true, 3000)
     const title = 'Select the file to send'
     // Filter based on type selected
     const filters = [{ name: 'All Files', extensions: ['*'] }]
@@ -124,6 +123,16 @@ export default class App extends React.Component {
     ipcRenderer.send('create-wormhole', id, name)
   }
 
+  editWormhole ({ id, name }) {
+    if (!name)
+      return notifications.show('Name missing', 'error', true, 3000)
+
+    // Show persistent composing notification
+    notifications.show('Rewarping space-time...', null, false)
+
+    ipcRenderer.send('edit-wormhole', id, name)
+  }
+
   copyIdentity (e) {
     clipboard.writeText(this.state.identity)
     notifications.show('Copied Spacedrop ID', null, true, 3000)
@@ -142,6 +151,14 @@ export default class App extends React.Component {
           show={this.state.createWormhole}
           onHide={() => this.closeModals()}
           onSubmit={this.createWormhole}
+        />
+        <WormholeModal
+          type='Edit'
+          show={!!this.state.editWormhole}
+          state={this.state.editWormhole}
+          onHide={() => this.closeModals()}
+          onSubmit={this.editWormhole}
+          disabledId={true}
         />
         <Container>
           <Toolbar
