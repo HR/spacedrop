@@ -78,13 +78,20 @@ app.on('activate', windows.main.activate)
    * App events
    *****************************/
   app.on('will-quit', () => {
-    console.log('Closing Spacedrop...')
+    console.log('Clnosing Spacedrop...')
     wormholes.pauseDrops()
   })
 
   app.on('delete-drops', () => {
     wormholes.clearDrops()
     updateState()
+  })
+
+  app.on('create-wormhole', () =>
+    windows.main.send('open-modal', 'createWormhole')
+  )
+  app.on('render-event', event => {
+    windows.main.send(event)
   })
 
   /**
@@ -314,7 +321,15 @@ app.on('activate', windows.main.activate)
   function resumeDropHandler (e, holeId, dropId) {
     if (!peers.isConnected(holeId))
       return notifyError('Wormhole closed (offline)')
-    peers.emit('resume-drop', dropId)
+
+    if (!peers.hasTransfer(dropId)) {
+      // Re-initiate transfer
+      const drop = wormholes.getDrop(holeId, dropId)
+      peers.send(dropId, holeId, drop, drop.path)
+    } else {
+      peers.emit('resume-drop', dropId)
+    }
+
     wormholes.updateDrop(holeId, dropId, { status: DROP_STATUS.PENDING })
     updateState()
   }

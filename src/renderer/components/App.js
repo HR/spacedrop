@@ -41,6 +41,8 @@ export default class App extends React.Component {
 
     // Add event listeners
     ipcRenderer.on('open-modal', (event, ...args) => this.openModal(...args))
+    ipcRenderer.on('create-drop', this.dropFileHandler)
+    ipcRenderer.on('copy-id', this.copyIdentity)
     ipcRenderer.on('update-state', this.updateState)
   }
 
@@ -91,6 +93,15 @@ export default class App extends React.Component {
       return notifications.show('No wormhole', 'error', true, 3000)
     if (!this.state.active)
       return notifications.show('No wormhole selected', 'error', true, 3000)
+
+    const wormhole = this.state.wormholes.find(w => w.id === this.state.active)
+    if (!wormhole.online)
+      return notifications.show(
+        'Wormhole closed (offline)',
+        'error',
+        true,
+        3000
+      )
     const title = 'Select the file to send'
     // Filter based on type selected
     const filters = [{ name: 'All Files', extensions: ['*'] }]
@@ -124,8 +135,7 @@ export default class App extends React.Component {
   }
 
   editWormhole ({ id, name }) {
-    if (!name)
-      return notifications.show('Name missing', 'error', true, 3000)
+    if (!name) return notifications.show('Name missing', 'error', true, 3000)
 
     // Show persistent composing notification
     notifications.show('Rewarping space-time...', null, false)

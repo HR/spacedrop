@@ -36,6 +36,7 @@ module.exports = class Peers extends EventEmitter {
 
     this._peers = {}
     this._requests = {}
+    this._transfers = []
     this._signal = signal
     this._crypto = crypto
     this._sendingQueue = new Queue()
@@ -86,6 +87,11 @@ module.exports = class Peers extends EventEmitter {
   // Checks if given peer is connected
   isConnected (id) {
     return this._peers.hasOwnProperty(id)
+  }
+
+  // Checks if transfer is in progress
+  hasTransfer (id) {
+    return this._transfers.includes(id)
   }
 
   // Queues a chat message to be sent to given peer
@@ -157,6 +163,10 @@ module.exports = class Peers extends EventEmitter {
       this._peers[id].destroy()
       delete this._peers[id]
     }
+  }
+
+  _removeDrop (id) {
+    this._transfers = this._transfers.filter(t => t !== id)
   }
 
   // Adds sender to initiate a connection with receiving peer
@@ -283,9 +293,11 @@ module.exports = class Peers extends EventEmitter {
 
     const peer = this._peers[receiverId]
 
-    // Add size
-    const { size } = await stat(filePath)
-    drop.size = size
+    if (!drop.size) {
+      // Add size
+      const { size } = await stat(filePath)
+      drop.size = size
+    }
 
     // Encrypt message
     const [encDrop, fileCipher] = await this._crypto.encrypt(
@@ -298,16 +310,20 @@ module.exports = class Peers extends EventEmitter {
 
     // Stream file
     console.log('Streaming', drop, filePath)
-    const fileReadStream = fs.createReadStream(filePath)
+    // Resume transfer is drop already exists
+    let opts = drop.transferred ? { start: drop.transferred } : {}
+    const fileReadStream = fs.createReadStream(filePath, opts)
     const sendingStream = peer.createDataChannel(serializedDrop)
     const tracker = progress({
-      length: size,
+      length: drop.size,
       time: DROP_STAT_INTERVAL
     })
 
     tracker.on('progress', progress =>
       this.emit('progress', receiverId, drop.id, progress)
     )
+
+    this._transfers.push(drop.id)
 
     const pipe = pipeline(
       fileReadStream,

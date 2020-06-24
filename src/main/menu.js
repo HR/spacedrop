@@ -10,10 +10,6 @@ const {
   debugInfo
 } = require('electron-util')
 
-const showPreferences = () => {
-  // Show the app's preferences here
-}
-
 const helpSubmenu = [
   openUrlMenuItem({
     label: 'Website',
@@ -81,22 +77,27 @@ const debugSubmenu = [
   }
 ]
 
-const macosTemplate = [
-  appMenu([
-    {
-      label: 'Preferences…',
-      accelerator: 'Command+,',
-      click () {
-        showPreferences()
-      }
-    }
-  ]),
+const defaultTemplate = [
   {
     role: 'fileMenu',
     submenu: [
       {
-        label: 'New Message',
-        click () {}
+        label: 'New Wormhole',
+        click () {
+          app.emit('create-wormhole')
+        }
+      },
+      {
+        label: 'Send File...',
+        click () {
+          app.emit('render-event', 'create-drop')
+        }
+      },
+      {
+        label: 'Copy Spacedrop ID',
+        click () {
+          app.emit('render-event', 'copy-id')
+        }
       },
       {
         type: 'separator'
@@ -121,45 +122,9 @@ const macosTemplate = [
   }
 ]
 
-// Linux and Windows
-const otherTemplate = [
-  {
-    role: 'fileMenu',
-    submenu: [
-      {
-        label: 'Custom'
-      },
-      {
-        type: 'separator'
-      },
-      {
-        label: 'Settings',
-        accelerator: 'Control+,',
-        click () {
-          showPreferences()
-        }
-      },
-      {
-        type: 'separator'
-      },
-      {
-        role: 'quit'
-      }
-    ]
-  },
-  {
-    role: 'editMenu'
-  },
-  {
-    role: 'viewMenu'
-  },
-  {
-    role: 'help',
-    submenu: helpSubmenu
-  }
-]
+const macosTemplate = [appMenu(), ...defaultTemplate]
 
-const template = process.platform === 'darwin' ? macosTemplate : otherTemplate
+const template = process.platform === 'darwin' ? macosTemplate : defaultTemplate
 
 if (is.development) {
   template.push({

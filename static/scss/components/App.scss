@@ -104,10 +104,15 @@
 
       // opacity: 0.6;
 
-      img {
+      img,
+      i {
         width: 120px;
         margin-bottom: 10px;
         filter: brightness(60%);
+      }
+
+      i {
+        font-size: 50px;
       }
     }
 
