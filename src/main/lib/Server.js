@@ -7,7 +7,8 @@
 const WebSocket = require('ws'),
   EventEmitter = require('events'),
   { encode } = require('querystring'),
-  { WS_URI } = require('../../config')
+  { WS_URI } = require('../../config'),
+  CONNECTED_STATE = 1
 
 module.exports = class Server extends EventEmitter {
   constructor () {
@@ -21,7 +22,6 @@ module.exports = class Server extends EventEmitter {
 
     this._id = null
     this._ws = null
-    this._connected = null
 
     // Bindings
     this.connect = this.connect.bind(this)
@@ -32,12 +32,15 @@ module.exports = class Server extends EventEmitter {
   }
 
   isConnected () {
-    return this._connected
+    return this._ws.readyState === CONNECTED_STATE
+  }
+
+  setId(userId) {
+    this._id = userId
   }
 
   // Connects to signal server
-  connect (userId, authRequest) {
-    this._id = userId
+  connect (authRequest) {
     // Build ws uri with authentication querystring data
     const wsAuthURI = WS_URI + '?' + encode(authRequest)
 
@@ -45,12 +48,10 @@ module.exports = class Server extends EventEmitter {
     // Add event listeners
     this._ws.on('message', this._emit)
     this._ws.on('open', () => {
-      this._connected = true
       this.emit('connect')
     })
     this._ws.on('close', () => {
-      this.emit('disconnect', this._connected)
-      this._connected = false
+      this.emit('disconnect')
     })
     this._ws.on('error', err => this.emit('error', err))
   }

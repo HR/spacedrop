@@ -1,6 +1,7 @@
 'use strict'
 const path = require('path')
 const { app, Menu, shell } = require('electron')
+const { DROPS_DIR } = require('../config')
 const {
   is,
   appMenu,
@@ -65,6 +66,7 @@ const debugSubmenu = [
     label: 'Delete Drops',
     click () {
       app.emit('delete-drops')
+      shell.moveItemToTrash(DROPS_DIR)
     }
   },
   {
@@ -97,6 +99,23 @@ const defaultTemplate = [
         label: 'Copy Spacedrop ID',
         click () {
           app.emit('render-event', 'copy-id')
+        }
+      },
+      {
+        type: 'separator'
+      },
+      {
+        id: 'connect-mothership',
+        label: 'Connect Mothership',
+        click () {
+          app.emit('connect-mothership')
+        }
+      },
+      {
+        id: 'open-wormholes',
+        label: 'Open Wormholes',
+        click () {
+          app.emit('open-wormholes')
         }
       },
       {

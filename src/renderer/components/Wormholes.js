@@ -76,7 +76,7 @@ export default function Wormholes (props) {
         <div className='noholes'>
           <img src='../../../static/spacedrop.svg' />
           <br />
-          Create a new wormhole to drop files
+          Create a new wormhole to send files
         </div>
       )}
     </div>

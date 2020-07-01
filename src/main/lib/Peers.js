@@ -18,7 +18,7 @@ const stream = require('stream'),
   { DROPS_DIR } = require('../../config'),
   // http://viblast.com/blog/2015/2/5/webrtc-data-channel-message-size/
   DROP_CHUNK_SIZE = 16 * 1024, // (16kb)
-  DROP_STREAM_RATE = 100, // ms
+  DROP_STREAM_RATE = 50, // ms
   DROP_STAT_INTERVAL = 800 // ms
 
 const { mkdir, stat } = fs.promises

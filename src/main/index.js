@@ -86,7 +86,12 @@ app.on('activate', windows.main.activate)
     wormholes.clearDrops()
     updateState()
   })
-
+  app.on('connect-mothership', () => connectMothership())
+  app.on('open-wormholes', () => {
+    if (!server.isConnected())
+      notifyError(`Connect with Mothership to open wormholes`)
+    openWormholes()
+  })
   app.on('create-wormhole', () =>
     windows.main.send('open-modal', 'createWormhole')
   )
@@ -99,15 +104,11 @@ app.on('activate', windows.main.activate)
    *****************************/
   server.on('connect', () => {
     openWormholes()
-    updateState()
+    updateState({ online: true })
   })
-  server.on('disconnect', connected => {
-    if (connected === null) {
-      notifyError('Failed to connect to the Mothership')
-    } else {
-      notifyError('Disconnected from the Mothership')
-    }
-    updateState()
+  server.on('disconnect', () => {
+    notifyError('Connection with Mothership failed')
+    updateState({ online: false })
   })
   server.on('error', err => {
     if (err.code !== 'ECONNREFUSED')
@@ -182,8 +183,9 @@ app.on('activate', windows.main.activate)
     })
   )
 
+  server.setId(identity.publicKey)
   // Establish connection with the Mothership (signalling server)
-  connectToMothership()
+  connectMothership()
 
   /**
    * Handlers
@@ -233,10 +235,9 @@ app.on('activate', windows.main.activate)
     windows.main.send('notify', message, 'error', true, 4000)
   }
 
-  async function connectToMothership () {
+  async function connectMothership () {
     const authRequest = crypto.generateAuthRequest()
-    server.connect(identity.publicKey, authRequest)
-    console.info('Connected to server')
+    server.connect(authRequest)
   }
 
   function openWormholes () {
@@ -261,7 +262,9 @@ app.on('activate', windows.main.activate)
   function createWormholeHandler (event, id, name) {
     wormholes.add(id, name)
     updateState(null, true)
-    // Open wormhole
+    if (!server.isConnected())
+      return notifyError('Connect with Mothership to open wormhole')
+    // open wormhole
     peers.connect(id)
   }
 
@@ -281,7 +284,6 @@ app.on('activate', windows.main.activate)
     // Set the id of the message to its hash
     drop.id = crypto.hash(JSON.stringify(drop))
     console.log('Dropping ', drop, ' to ', id)
-    // TODO: Copy media to media dir
     // Optimistically update UI
     wormholes.addDrop(id, drop.id, {
       type: DROP_TYPE.UPLOAD,
