@@ -1,7 +1,7 @@
 const HtmlWebPackPlugin = require('html-webpack-plugin'),
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
-  path = require('path'),
-  sassLoader = require('./scripts/sass-loader.js')
+  // sassLoader = require('./scripts/sass-loader.js'),
+  path = require('path')
 
 module.exports = {
   entry: path.resolve(__dirname, 'src/renderer/index.js'),
@@ -20,7 +20,7 @@ module.exports = {
       },
       {
         test: /\.s[ac]ss$/i,
-        use: [MiniCssExtractPlugin.loader, 'css-loader', sassLoader]
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader']
       },
       {
         test: /\.html$/,

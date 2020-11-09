@@ -27,6 +27,7 @@ async function init () {
     titleBarStyle: 'hiddenInset',
     webPreferences: {
       nodeIntegration: true,
+      enableRemoteModule: true
       // webSecurity: false // To allow local image loading
     }
   }))

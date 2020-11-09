@@ -1,6 +1,9 @@
 @import '~bootstrap/scss/bootstrap';
 
-@import 'components/*';
+@import 'components/App.scss';
+@import 'components/Button.scss';
+@import 'components/Modal.scss';
+@import 'components/Notification.scss';
 @import 'ionicons';
 @import 'themes';
 

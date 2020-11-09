@@ -41,6 +41,7 @@ module.exports = class Queue extends EventEmitter {
         // }, this._timeout)
         console.log('Finished task', id)
       } catch (error) {
+        console.error(error)
         this._error(id, error)
       }
 

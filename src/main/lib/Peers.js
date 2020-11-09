@@ -245,28 +245,32 @@ module.exports = class Peers extends EventEmitter {
   async _onDataChannel (userId, receivingStream, rawDrop) {
     console.log('------> Received a new drop (datachannel)', rawDrop)
     const encDrop = JSON.parse(rawDrop)
-    let [drop, fileDecipher] = await this._crypto.decrypt(userId, encDrop)
+    let { message, decipher } = await this._crypto.decrypt(
+      userId,
+      encDrop,
+      true
+    )
     // Ignore if validation failed
-    if (!drop) return
+    if (!message) return
     const dropDir = path.join(DROPS_DIR, userId)
     // Recursively make media directory
     await mkdir(dropDir, { recursive: true })
-    const filePath = path.join(dropDir, drop.name)
+    const filePath = path.join(dropDir, message.name)
     console.log('Writing to', filePath)
 
-    this.emit('drop', userId, { path: filePath, ...drop })
+    this.emit('drop', userId, { path: filePath, ...message })
 
     const fileWriteStream = fs.createWriteStream(filePath)
     const tracker = progress({
-      length: drop.size,
+      length: message.size,
       time: DROP_STAT_INTERVAL
     })
 
     tracker.on('progress', progress =>
-      this.emit('progress', userId, drop.id, progress)
+      this.emit('progress', userId, message.id, progress)
     )
     // Stream content
-    await pipeline(receivingStream, fileDecipher, tracker, fileWriteStream)
+    await pipeline(receivingStream, decipher, tracker, fileWriteStream)
   }
 
   // Sends a message to given peer
@@ -300,13 +304,9 @@ module.exports = class Peers extends EventEmitter {
     }
 
     // Encrypt message
-    const [encDrop, fileCipher] = await this._crypto.encrypt(
-      receiverId,
-      drop,
-      filePath
-    )
+    const {packet, cipher} = await this._crypto.encrypt(receiverId, drop, true)
 
-    const serializedDrop = JSON.stringify(encDrop)
+    const serializedDrop = JSON.stringify(packet)
 
     // Stream file
     console.log('Streaming', drop, filePath)
@@ -327,7 +327,7 @@ module.exports = class Peers extends EventEmitter {
 
     const pipe = pipeline(
       fileReadStream,
-      fileCipher,
+      cipher,
       // Throttle stream (backpressure)
       brake(DROP_CHUNK_SIZE, { period: DROP_STREAM_RATE }),
       tracker,
@@ -337,7 +337,7 @@ module.exports = class Peers extends EventEmitter {
     this.on('pause-drop', dropId => {
       if (dropId === drop.id) {
         console.log('Pausing drop', drop)
-        fileReadStream.unpipe(fileCipher)
+        fileReadStream.unpipe(cipher)
         console.log('Stream paused?', fileReadStream.isPaused())
       }
     })
@@ -345,7 +345,7 @@ module.exports = class Peers extends EventEmitter {
     this.on('resume-drop', dropId => {
       if (dropId === drop.id) {
         console.log('Resuming drop', drop)
-        fileReadStream.pipe(fileCipher)
+        fileReadStream.pipe(cipher)
       }
     })
 
