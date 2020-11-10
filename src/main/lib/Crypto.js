@@ -4,7 +4,7 @@
  * Manages all keys and provides all crypto functionality
  */
 
-const E2EE = require('./e2ee/src'),
+const E2EE = require('./e2ee'),
   keytar = require('keytar'),
   SERVICE = 'spacedrop'
 
