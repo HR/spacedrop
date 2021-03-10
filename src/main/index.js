@@ -29,7 +29,7 @@ unhandled({
     })
   }
 })
-debug()
+// debug()
 app.setAppUserModelId(packageJson.build.appId)
 
 if (!is.development) {

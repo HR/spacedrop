@@ -23,10 +23,12 @@ async function init () {
     minHeight: 400,
     // secondaryBackgroundColor: '#00FFFFFF',
     frame: false,
+    transparent: true,
     // vibrancy: 'appearance-based',
     titleBarStyle: 'hiddenInset',
     webPreferences: {
       nodeIntegration: true,
+      contextIsolation: false,
       enableRemoteModule: true
       // webSecurity: false // To allow local image loading
     }

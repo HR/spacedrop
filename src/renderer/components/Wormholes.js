@@ -74,7 +74,7 @@ export default function Wormholes (props) {
         tabContainer
       ) : (
         <div className='noholes'>
-          <img src='../../../static/spacedrop.svg' />
+          <i className='ion-spacedrop' />
           <br />
           Create a new wormhole to send files
         </div>

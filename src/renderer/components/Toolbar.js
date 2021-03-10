@@ -6,7 +6,7 @@ export default function Toolbar (props) {
   return (
     <div className='toolbar'>
       <Row className='title'>
-        <Col>Spacedrop</Col>
+        <Col>SpaceDrop</Col>
       </Row>
       <Row className='actions'>
         <Col>
@@ -23,8 +23,7 @@ export default function Toolbar (props) {
             onClick={props.onCreateWormholeClick}
             title='Create a wormhole'
           >
-            <img src='../../../static/spacedrop.svg' className='icon' />
-            {/* <i className='ion-ios-add-circle'  /> */}
+            <i className='ion-spacedrop-small' />
           </Button>
         </Col>
         <Col>

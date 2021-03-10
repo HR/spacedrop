@@ -1,31 +1,14 @@
 $darkTheme: (
-  primaryColor: #0061E6,
+  primaryColor: rgba(44,44,46, 0.8),
   
-  primaryBackgroundColor: transparent,
-  contentBackgroundColor: #222e,
-  secondaryBackgroundColor: #222,
-  transparentBackgroundColor: #222e,
-  overlayBackgroundColor: #5556,
+  primaryBackgroundColor: rgba(17,17,19, 0.8),
 
-  primaryForegroundColor: #fffc,
-  primaryColorForegroundColor: #fff,
-  secondaryForegroundColor: #aaa,
-  mutedForegroundColor: #252525,
-
-  highlightBorderColor: #333,
-
-  sidebarBackgroundColor: transparent,
-  sidebarSelectedItemBackgroundColor: #222e,
-
-  modalBackgroundColor: #555d,
-  modalOverlayColor: #1119,
-  modalShadowColor: #0008,
+  primaryForegroundColor: rgba(242,242,247, 1),
   
-  toolbarButtonColor: #0061E6,
-  buttonBackgroundColor: #0061E6,
-  buttonForegroundColor: #fff,
+  // primaryBackgroundColor: #1c1c1e,
+  secondaryBackgroundColor: #3a3a3c,
+  thirdlyBackgroundColor: #48484a,
 
   dangerColor: #dc3545,
-  dangerForegroundColor: #fff,
-  onlineColor: #01A452,
-);
+  onlineColor: #01a452
+)

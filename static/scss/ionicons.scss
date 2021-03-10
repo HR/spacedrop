@@ -397,6 +397,8 @@
 .ion-logo-yahoo:before,
 .ion-logo-yen:before,
 .ion-logo-youtube:before,
+.ion-spacedrop:before,
+.ion-spacedrop-small:before,
 .ion-md-add:before,
 .ion-md-add-circle:before,
 .ion-md-add-circle-outline:before,
@@ -725,6 +727,14 @@
   line-height: 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.ion-spacedrop:before {
+  content: "ﺢ";
+}
+
+.ion-spacedrop-small:before {
+  content: "ﺡ";
 }
 
 .ion-ios-add:before {

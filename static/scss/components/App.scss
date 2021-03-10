@@ -93,26 +93,12 @@
 
     .noholes {
       margin: auto;
-      position: absolute;
-      top: 30%;
-      left: 0;
-      bottom: 0;
-      right: 0;
       text-align: center;
-      filter: brightness(60%);
-      width: 170px;
-
-      // opacity: 0.6;
-
-      img,
-      i {
-        width: 120px;
-        margin-bottom: 10px;
-        filter: brightness(60%);
-      }
+      opacity: 0.6;
+      margin: 5rem;
 
       i {
-        font-size: 50px;
+        font-size: 7rem;
       }
     }
 

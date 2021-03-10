@@ -41,4 +41,8 @@
   a, .clickable {
     cursor: pointer;
   }
+
+  .spacedrop-logo {
+    fill: themed('primaryForegroundColor');
+  }
 }
