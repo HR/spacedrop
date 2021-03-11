@@ -2,7 +2,7 @@
   <br>
   <a href="https://github.com/HR/spacedrop"><img src="./build/icon.png" alt="Spacedrop" width="180" style= "margin-bottom: 1rem"></a>
   <br>
-  Spacedrop
+  SpaceDrop
   <br>
   <br>
 </h1>
@@ -126,4 +126,4 @@ After Travis finishes building your app, open the release draft it created and
 click "Publish".
 
 
-<> with <3 by Habib Rehman
+<> with <3 by <a href="https://habibrehman.com">Habib Rehman</a>
